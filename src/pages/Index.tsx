@@ -653,7 +653,7 @@ const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transacti
                     {privacyOn ? "•••••" : currencyFormatter.format(income)}
                   </p>
                   {openIncomeByUser[user.id] && (
-                    <div className="mt-2 space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                    <div className="mt-2 max-h-44 space-y-1.5 overflow-y-auto pr-1 no-scrollbar">
                       {userTxs
                         .filter((t) => t.amount > 0)
                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -706,7 +706,7 @@ const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transacti
                     {privacyOn ? "•••••" : currencyFormatter.format(Math.abs(expense))}
                   </p>
                   {openExpenseByUser[user.id] && (
-                    <div className="mt-2 space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                    <div className="mt-2 max-h-44 space-y-1.5 overflow-y-auto pr-1 no-scrollbar">
                       {userTxs
                         .filter((t) => t.amount < 0)
                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
