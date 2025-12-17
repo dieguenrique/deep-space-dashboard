@@ -142,25 +142,75 @@ const calendarTransactions = [
   { id: 101, title: "Salário", amount: 3200, category: "Receita", date: "2025-01-01" },
   { id: 102, title: "Supermercado", amount: -120.4, category: "Alimentação", date: "2025-01-02" },
   { id: 103, title: "Uber", amount: -18.9, category: "Transporte", date: "2025-01-03" },
-  { id: 104, title: "Restaurante · jantar", amount: -85.3, category: "Alimentação", date: "2025-01-05" },
-  { id: 105, title: "Freelancer · projeto", amount: 540, category: "Receita", date: "2025-01-06" },
-  { id: 106, title: "Cinema", amount: -42, category: "Lazer", date: "2025-01-08" },
-  { id: 107, title: "Aluguel", amount: -950, category: "Casa", date: "2025-01-10" },
-  { id: 108, title: "Ginásio", amount: -39.9, category: "Saúde", date: "2025-01-11" },
-  { id: 109, title: "Reembolso empresa", amount: 210, category: "Receita", date: "2025-01-12" },
-  { id: 110, title: "Café coworking", amount: -12.5, category: "Alimentação", date: "2025-01-15" },
-  { id: 111, title: "Combustível", amount: -70, category: "Transporte", date: "2025-01-16" },
-  { id: 112, title: "Streaming anual", amount: -199, category: "Lazer", date: "2025-01-18" },
-  { id: 113, title: "Bónus", amount: 860, category: "Receita", date: "2025-01-20" },
-  { id: 114, title: "Farmácia", amount: -26.7, category: "Saúde", date: "2025-01-22" },
-  { id: 115, title: "Restaurante · família", amount: -132.8, category: "Alimentação", date: "2025-01-24" },
-  { id: 116, title: "Táxi", amount: -15.2, category: "Transporte", date: "2025-01-25" },
-  { id: 117, title: "Consultoria", amount: 430, category: "Receita", date: "2025-01-27" },
-  { id: 118, title: "Bar · amigos", amount: -64.3, category: "Lazer", date: "2025-01-28" },
-  { id: 119, title: "Supermercado grande", amount: -210.5, category: "Alimentação", date: "2025-01-29" },
-  { id: 120, title: "Rendimento investimentos", amount: 190.1, category: "Receita", date: "2025-01-30" },
+  { id: 104, title: "Restaurante · jantar", amount: -85.3, category: "Alimentação", date: "2025-01-04" },
+  { id: 105, title: "Freelancer · projeto", amount: 540, category: "Receita", date: "2025-01-04" },
+  { id: 106, title: "Cinema", amount: -42, category: "Lazer", date: "2025-01-05" },
+  { id: 107, title: "Aluguel", amount: -950, category: "Casa", date: "2025-01-06" },
+  { id: 108, title: "Ginásio", amount: -39.9, category: "Saúde", date: "2025-01-06" },
+  { id: 109, title: "Reembolso empresa", amount: 210, category: "Receita", date: "2025-01-07" },
+  { id: 110, title: "Café coworking", amount: -12.5, category: "Alimentação", date: "2025-01-07" },
+  { id: 111, title: "Combustível", amount: -70, category: "Transporte", date: "2025-01-08" },
+  { id: 112, title: "Streaming anual", amount: -199, category: "Lazer", date: "2025-01-09" },
+  { id: 113, title: "Bónus", amount: 860, category: "Receita", date: "2025-01-09" },
+  { id: 114, title: "Farmácia", amount: -26.7, category: "Saúde", date: "2025-01-10" },
+  { id: 115, title: "Restaurante · família", amount: -132.8, category: "Alimentação", date: "2025-01-11" },
+  { id: 116, title: "Táxi", amount: -15.2, category: "Transporte", date: "2025-01-11" },
+  { id: 117, title: "Consultoria", amount: 430, category: "Receita", date: "2025-01-12" },
+  { id: 118, title: "Bar · amigos", amount: -64.3, category: "Lazer", date: "2025-01-12" },
+  { id: 119, title: "Supermercado grande", amount: -210.5, category: "Alimentação", date: "2025-01-13" },
+  { id: 120, title: "Rendimento investimentos", amount: 190.1, category: "Receita", date: "2025-01-14" },
 ];
 
+const calendarNotes = [
+  {
+    id: 201,
+    date: "2025-01-04",
+    title: "Revisar orçamento semanal",
+    body: "Verificar gastos em restaurantes e transportes desta semana.",
+  },
+  {
+    id: 202,
+    date: "2025-01-06",
+    title: "Checklist de faturas",
+    body: "Confirmar pagamento de aluguel, ginásio e streaming.",
+  },
+  {
+    id: 203,
+    date: "2025-01-07",
+    title: "Ideias de corte de custos",
+    body: "Explorar alternativas mais baratas para transporte diário.",
+  },
+  {
+    id: 204,
+    date: "2025-01-09",
+    title: "Planeamento de bónus",
+    body: "Definir percentagem para investimentos vs. lazer.",
+  },
+  {
+    id: 205,
+    date: "2025-01-11",
+    title: "Fim de semana em família",
+    body: "Controlar limite de gastos em refeições e passeios.",
+  },
+  {
+    id: 206,
+    date: "2025-01-12",
+    title: "Revisão de assinaturas",
+    body: "Ver se ainda faz sentido manter todas as subscrições.",
+  },
+  {
+    id: 207,
+    date: "2025-01-13",
+    title: "Supermercado mensal",
+    body: "Comparar preços entre supermercados habituais.",
+  },
+  {
+    id: 208,
+    date: "2025-01-14",
+    title: "Reinvestir rendimentos",
+    body: "Escolher ativos para aplicar o rendimento dos investimentos.",
+  },
+];
 const getCategoryIcon = (category: string) => {
   switch (category) {
     case "Alimentação":
@@ -795,37 +845,56 @@ const CalendarTab = ({ selectedDay, onSelectDay, privacyOn, reminders }: Calenda
   const selectedKey = getDateKey(effectiveDay);
 
   const groupedDays = useMemo(() => {
-    const map = new Map<string, { date: Date; transactions: typeof calendarTransactions; reminders: typeof reminders }>();
+    const map = new Map<
+      string,
+      {
+        date: Date;
+        transactions: (typeof calendarTransactions)[number][];
+        reminders: (typeof mockReminders)[number][];
+        notes: (typeof calendarNotes)[number][];
+      }
+    >();
 
     calendarTransactions.forEach((tx) => {
       let entry = map.get(tx.date);
       if (!entry) {
-        entry = { date: new Date(tx.date), transactions: [] as any, reminders: [] as any };
+        entry = { date: new Date(tx.date), transactions: [], reminders: [], notes: [] };
         map.set(tx.date, entry);
       }
-      (entry.transactions as any).push(tx);
+      entry.transactions.push(tx);
     });
 
     reminders.forEach((reminder) => {
       let entry = map.get(reminder.date);
       if (!entry) {
-        entry = { date: new Date(reminder.date), transactions: [] as any, reminders: [] as any };
+        entry = { date: new Date(reminder.date), transactions: [], reminders: [], notes: [] };
         map.set(reminder.date, entry);
       }
-      (entry.reminders as any).push(reminder);
+      entry.reminders.push(reminder);
+    });
+
+    calendarNotes.forEach((note) => {
+      let entry = map.get(note.date);
+      if (!entry) {
+        entry = { date: new Date(note.date), transactions: [], reminders: [], notes: [] };
+        map.set(note.date, entry);
+      }
+      entry.notes.push(note);
     });
 
     const daysArray = Array.from(map.entries())
       .map(([dateKey, value]) => ({ key: dateKey, ...value }))
       .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-    // limit to 14 days to simulate short-term future view
     return daysArray.slice(0, 14);
   }, [reminders]);
 
-  const weekStripDays = groupedDays.slice(0, 7);
+  const formatDayLabel = (date: Date) =>
+    date.toLocaleDateString("pt-PT", {
+      weekday: "short",
+    });
 
-  const formatDayHeader = (date: Date) =>
+  const formatFullDate = (date: Date) =>
     date.toLocaleDateString("pt-PT", {
       weekday: "long",
       day: "2-digit",
@@ -840,132 +909,184 @@ const CalendarTab = ({ selectedDay, onSelectDay, privacyOn, reminders }: Calenda
     }
   };
 
+  const weekStripDays = groupedDays.slice(0, 7);
+
   return (
     <section className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="tag-pill bg-[hsl(var(--finance-gradient-start))]/15 text-xs">Calendário</span>
-          <span className="text-[11px] text-muted-foreground">Linha do tempo de finanças e lembretes</span>
+          <span className="text-[11px] text-muted-foreground">Linha do tempo conectada</span>
         </div>
       </div>
 
       {/* Week strip */}
-      <div className="glass-card aura-card rounded-2xl px-3 py-2.5">
-        <div className="flex items-center justify-between gap-1">
-          {weekStripDays.map((day) => {
-            const key = day.key;
-            const isActive = key === selectedKey;
-            const label = day.date.toLocaleDateString("pt-PT", { weekday: "short" });
-            const num = day.date.getDate();
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => handleJumpToDay(key, day.date)}
-                className={cn(
-                  "flex flex-1 flex-col items-center gap-0.5 rounded-2xl px-1.5 py-1 text-[10px] transition-colors",
-                  isActive ? "text-primary" : "text-muted-foreground",
-                )}
-              >
-                <span className="uppercase tracking-[0.18em]">{label}</span>
-                <span
+      {weekStripDays.length > 0 && (
+        <div className="glass-card aura-card rounded-2xl px-3 py-2.5">
+          <div className="flex items-center justify-between gap-1">
+            {weekStripDays.map((day) => {
+              const key = day.key;
+              const isActive = key === selectedKey;
+              const label = day.date.toLocaleDateString("pt-PT", { weekday: "short" });
+              const num = day.date.getDate();
+              const isToday = key === getDateKey(new Date());
+
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => handleJumpToDay(key, day.date)}
                   className={cn(
-                    "flex h-7 w-7 items-center justify-center rounded-full border text-xs",
-                    isActive
-                      ? "border-[hsl(var(--accent))] bg-[hsl(var(--accent))]/20 shadow-[0_0_18px_hsl(var(--accent)/0.7)]"
-                      : "border-border/60 bg-card/60",
+                    "flex flex-1 flex-col items-center gap-0.5 rounded-2xl px-1.5 py-1 text-[10px] transition-colors",
+                    isActive ? "text-primary" : "text-muted-foreground",
                   )}
                 >
-                  {num}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Vertical timeline */}
-      <div className="glass-card aura-card aura-strong max-h-[520px] overflow-y-auto rounded-2xl p-3 no-scrollbar">
-        {groupedDays.map((day) => {
-          const key = day.key;
-          const isToday = key === getDateKey(new Date());
-          const totalItems = (day.transactions as any).length + (day.reminders as any).length;
-
-          return (
-            <section key={key} id={`day-${key}`} className="relative pb-4">
-              <div className="sticky top-0 z-10 -mx-3 mb-2 px-3">
-                <div className="glass-card flex items-center justify-between rounded-2xl bg-background/70 px-3 py-2 text-xs">
-                  <div>
-                    <p className="font-semibold tracking-tight">
-                      {formatDayHeader(day.date)} {isToday && <span className="ml-1 text-[10px] text-[hsl(var(--accent))]">· Hoje</span>}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">{totalItems} eventos</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                {(day.transactions as any).map((tx: (typeof calendarTransactions)[number]) => {
-                  const isNegative = tx.amount < 0;
-                  const Icon = getCategoryIcon(tx.category);
-                  return (
-                    <div
-                      key={`tx-${tx.id}`}
-                      className="flex items-center justify-between gap-2 rounded-2xl border border-border/60 bg-card/70 px-3 py-1.5 text-xs"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted/60">
-                          <Icon className="h-3.5 w-3.5" />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="font-medium leading-tight">{tx.title}</span>
-                          <span className="text-[10px] text-muted-foreground">{tx.category}</span>
-                        </div>
-                      </div>
-                      <span
-                        className={cn(
-                          "text-[11px] font-semibold",
-                          isNegative ? "text-rose-400" : "text-emerald-400",
-                        )}
-                      >
-                        {privacyOn
-                          ? "•••••"
-                          : `${isNegative ? "-" : "+"} ${currencyFormatter.format(Math.abs(tx.amount))}`}
-                      </span>
-                    </div>
-                  );
-                })}
-
-                {(day.reminders as any).map((rem: (typeof mockReminders)[number]) => (
-                  <div
-                    key={`rem-${rem.id}`}
-                    className="flex items-center justify-between gap-2 rounded-2xl border border-[hsl(var(--reminders-accent))]/50 bg-card/70 px-3 py-1.5 text-xs"
+                  <span className="uppercase tracking-[0.18em]">{label}</span>
+                  <span
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-full border text-xs",
+                      isActive
+                        ? "border-[hsl(var(--accent))] bg-[hsl(var(--accent))]/20 shadow-[0_0_18px_hsl(var(--accent)/0.7)]"
+                        : "border-border/60 bg-card/60",
+                    )}
                   >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={cn(
-                          "flex h-4 w-4 items-center justify-center rounded-full border text-[9px]",
-                          rem.status === "pending"
-                            ? "border-[hsl(var(--reminders-accent))] text-[hsl(var(--reminders-accent))]"
-                            : "border-muted text-muted-foreground",
-                        )}
-                      >
-                        {rem.status === "pending" ? "●" : "✓"}
+                    {num}
+                  </span>
+                  {isToday && (
+                    <span className="mt-0.5 rounded-full bg-[hsl(var(--accent))]/20 px-1.5 py-0.5 text-[9px] text-[hsl(var(--accent))]">
+                      Hoje
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Connected vertical timeline */}
+      <div className="glass-card aura-card aura-strong max-h-[520px] overflow-y-auto rounded-2xl p-3 no-scrollbar">
+        <div className="relative pl-6">
+          <div className="pointer-events-none absolute left-6 top-0 bottom-0 w-px bg-border/70" />
+
+          <div className="space-y-4">
+            {groupedDays.map((day) => {
+              const key = day.key;
+              const isToday = key === getDateKey(new Date());
+
+              return (
+                <section key={key} id={`day-${key}`} className="relative flex gap-3">
+                  {/* Left date anchor */}
+                  <div className="relative -ml-6 flex w-14 flex-col items-center pt-1 text-center">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                        {formatDayLabel(day.date)}
                       </span>
-                      <div className="flex flex-col">
-                        <span className="text-[10px] text-muted-foreground">{rem.time}</span>
-                        <span className="font-medium leading-tight">{rem.title}</span>
+                      <span className="mt-0.5 text-2xl font-semibold text-[hsl(var(--accent))]">
+                        {day.date.getDate()}
+                      </span>
+                      {isToday && (
+                        <span className="mt-1 rounded-full bg-[hsl(var(--accent))]/20 px-2 py-0.5 text-[9px] font-medium text-[hsl(var(--accent))]">
+                          Hoje
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right content thread */}
+                  <div className="flex-1 pb-3">
+                    <div className="sticky top-0 z-10 mb-2 pr-1">
+                      <div className="glass-card flex items-center justify-between rounded-2xl bg-background/70 px-3 py-1.5 text-[11px]">
+                        <span className="font-medium tracking-tight">{formatFullDate(day.date)}</span>
+                        <span className="text-muted-foreground">
+                          {day.transactions.length + day.reminders.length + day.notes.length} eventos
+                        </span>
                       </div>
                     </div>
-                    <span className="text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--reminders-accent))]">
-                      Lembrete
-                    </span>
+
+                    <div className="space-y-1.5">
+                      {/* Financial items */}
+                      {day.transactions.map((tx) => {
+                        const isNegative = tx.amount < 0;
+                        const Icon = getCategoryIcon(tx.category);
+
+                        return (
+                          <div
+                            key={`tx-${tx.id}`}
+                            className="flex items-center justify-between gap-2 rounded-2xl border border-border/60 bg-card/70 px-3 py-2 text-xs backdrop-blur-md"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted/60">
+                                <Icon className="h-3.5 w-3.5" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-medium leading-tight">{tx.title}</span>
+                                <span className="text-[10px] text-muted-foreground">{tx.category}</span>
+                              </div>
+                            </div>
+                            <span
+                              className={cn(
+                                "text-[11px] font-semibold",
+                                isNegative ? "text-rose-400" : "text-emerald-400",
+                              )}
+                            >
+                              {privacyOn
+                                ? "•••••"
+                                : `${isNegative ? "-" : "+"} ${currencyFormatter.format(Math.abs(tx.amount))}`}
+                            </span>
+                          </div>
+                        );
+                      })}
+
+                      {/* Reminders */}
+                      {day.reminders.map((rem) => (
+                        <div
+                          key={`rem-${rem.id}`}
+                          className="flex items-center justify-between gap-2 py-1.5 text-xs"
+                        >
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              className={cn(
+                                "flex h-4 w-4 items-center justify-center rounded-full border text-[9px]",
+                                rem.status === "pending"
+                                  ? "border-[hsl(var(--reminders-accent))] text-[hsl(var(--reminders-accent))]"
+                                  : "border-muted text-muted-foreground bg-muted/30",
+                              )}
+                            >
+                              {rem.status === "pending" ? "" : "✓"}
+                            </button>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] text-muted-foreground">{rem.time}</span>
+                              <span className="font-medium leading-tight">{rem.title}</span>
+                            </div>
+                          </div>
+                          <span className="text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--reminders-accent))]">
+                            Lembrete
+                          </span>
+                        </div>
+                      ))}
+
+                      {/* Notes snippets */}
+                      {day.notes.map((note) => (
+                        <div
+                          key={`note-${note.id}`}
+                          className="rounded-2xl border-l-4 border-amber-400/80 bg-amber-400/10 px-3 py-2 text-xs shadow-sm"
+                        >
+                          <p className="text-[11px] font-semibold leading-tight">{note.title}</p>
+                          <p className="mt-0.5 line-clamp-1 text-[11px] text-amber-100/80">
+                            {note.body}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
-            </section>
-          );
-        })}
+                </section>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </section>
   );
