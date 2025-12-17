@@ -22,6 +22,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { MOCK_USERS, type DashboardUser } from "@/lib/supabaseClient";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { fetchTransactions, fetchReminders, fetchNotes, type TransactionRecord, type ReminderRecord, type NoteRecord } from "@/services/api";
 
 const financeEvolution = [
   { month: "Jan", value: 1200 },
@@ -48,50 +50,6 @@ const financeCategories = [
   { category: "Lazer", value: 42 },
   { category: "Saúde", value: 28 },
   { category: "Outros", value: 30 },
-];
-
-const mockNotes = [
-  {
-    id: 1,
-    userId: "351932966990",
-    title: "Planejamento da semana",
-    body: "Revisar metas de gastos, separar horário para leitura e treino.",
-    tone: "finance",
-  },
-  {
-    id: 2,
-    userId: "351932966990",
-    title: "Ideias de side hustle",
-    body: "Newsletter em PT-BR sobre finanças pessoais digitais.",
-    tone: "notes",
-  },
-  {
-    id: 3,
-    userId: "351929426244",
-    title: "To-dos de hoje",
-    body: "Enviar comprovantes, renegociar plano de internet, backup do Notion.",
-    tone: "reminders",
-  },
-  {
-    id: 4,
-    userId: "351929426244",
-    title: "Viagem SP",
-    body: "Criar orçamento diário com teto em restaurantes e transporte.",
-    tone: "finance",
-  },
-];
-
-const mockReminders = [
-  { id: 1, userId: "351932966990", title: "Pagar cartão de crédito", time: "Hoje · 18:00", status: "pending" as const, date: "2025-01-10" },
-  { id: 2, userId: "351932966990", title: "Rever orçamento do mês", time: "Amanhã · 09:00", status: "pending" as const, date: "2025-01-11" },
-  { id: 3, userId: "351929426244", title: "Assinar relatório de investimentos", time: "Concluído ontem", status: "done" as const, date: "2025-01-09" },
-  { id: 4, userId: "351932966990", title: "Rever metas trimestrais", time: "15 Jan · 08:30", status: "pending" as const, date: "2025-01-15" },
-  { id: 5, userId: "351932966990", title: "Renovar seguro do carro", time: "20 Jan · 14:00", status: "pending" as const, date: "2025-01-20" },
-  { id: 6, userId: "351932966990", title: "Enviar fatura para cliente", time: "05 Jan · 11:00", status: "done" as const, date: "2025-01-05" },
-  { id: 7, userId: "351929426244", title: "Agendar consulta médica", time: "12 Jan · 16:00", status: "pending" as const, date: "2025-01-12" },
-  { id: 8, userId: "351929426244", title: "Reunião com contador", time: "22 Jan · 10:00", status: "pending" as const, date: "2025-01-22" },
-  { id: 9, userId: "351932966990", title: "Atualizar planilha de investimentos", time: "27 Jan · 19:00", status: "pending" as const, date: "2025-01-27" },
-  { id: 10, userId: "351929426244", title: "Backup de documentos", time: "30 Jan · 21:00", status: "done" as const, date: "2025-01-30" },
 ];
 
 const currencyFormatter = new Intl.NumberFormat("pt-PT", {
@@ -260,20 +218,46 @@ const Index = () => {
   const [focusedNoteId, setFocusedNoteId] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState<Date | undefined>(new Date());
 
+  const currentUserId = selectedUser?.id ?? null;
+
+  const { data: transactions = [], isLoading: isLoadingTransactions } = useQuery<TransactionRecord[]>({
+    queryKey: ["transactions"],
+    queryFn: () => {
+      const today = new Date();
+      const start = new Date(today);
+      start.setDate(start.getDate() - 7);
+      const end = new Date(today);
+      end.setDate(end.getDate() + 7);
+      return fetchTransactions(start, end);
+    },
+    enabled: !!currentUserId,
+  });
+
+  const { data: reminders = [], isLoading: isLoadingReminders } = useQuery<ReminderRecord[]>({
+    queryKey: ["reminders", currentUserId],
+    queryFn: () => fetchReminders(currentUserId!),
+    enabled: !!currentUserId,
+  });
+
+  const { data: notes = [], isLoading: isLoadingNotes } = useQuery<NoteRecord[]>({
+    queryKey: ["notes", currentUserId],
+    queryFn: () => fetchNotes(currentUserId!),
+    enabled: !!currentUserId,
+  });
+
   const filteredNotes = useMemo(() => {
-    if (!selectedUser) return [];
-    return mockNotes.filter((note) => {
-      if (note.userId !== selectedUser.id) return false;
+    if (!currentUserId) return [] as NoteRecord[];
+    return notes.filter((note) => {
       if (!notesQuery.trim()) return true;
       const q = notesQuery.toLowerCase();
       return note.title.toLowerCase().includes(q) || note.body.toLowerCase().includes(q);
     });
-  }, [notesQuery, selectedUser]);
+  }, [notesQuery, notes, currentUserId]);
 
   const filteredReminders = useMemo(() => {
-    if (!selectedUser) return [];
-    return mockReminders.filter((r) => r.userId === selectedUser.id);
-  }, [selectedUser]);
+    if (!currentUserId) return [] as ReminderRecord[];
+    return reminders;
+  }, [reminders, currentUserId]);
 
   const focusNote = filteredNotes.find((n) => n.id === focusedNoteId) ?? null;
 
@@ -680,7 +664,7 @@ const FinanceTab = ({ privacyOn }: { privacyOn: boolean }) => {
 };
 
 interface NotesTabProps {
-  notes: typeof mockNotes;
+  notes: NoteRecord[];
   query: string;
   onQueryChange: (v: string) => void;
   onOpenNote: (id: number) => void;
@@ -742,7 +726,7 @@ const NotesTab = ({ notes, query, onQueryChange, onOpenNote }: NotesTabProps) =>
   );
 };
 
-const RemindersTab = ({ reminders }: { reminders: typeof mockReminders }) => {
+const RemindersTab = ({ reminders }: { reminders: ReminderRecord[] }) => {
   const [items, setItems] = useState(reminders);
 
   const handleComplete = (id: number) => {
@@ -805,7 +789,7 @@ const RemindersTab = ({ reminders }: { reminders: typeof mockReminders }) => {
                         >
                           {reminder.title}
                         </p>
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">{reminder.time}</p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">{reminder.timeLabel}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
@@ -839,10 +823,12 @@ interface CalendarTabProps {
   selectedDay: Date | undefined;
   onSelectDay: (date: Date | undefined) => void;
   privacyOn: boolean;
-  reminders: typeof mockReminders;
+  transactions: TransactionRecord[];
+  reminders: ReminderRecord[];
+  notes: NoteRecord[];
 }
 
-const CalendarTab = ({ selectedDay, onSelectDay, privacyOn, reminders }: CalendarTabProps) => {
+const CalendarTab = ({ selectedDay, onSelectDay, privacyOn, transactions, reminders, notes }: CalendarTabProps) => {
   const effectiveDay = selectedDay ?? new Date();
   const selectedKey = getDateKey(effectiveDay);
 
@@ -851,9 +837,9 @@ const CalendarTab = ({ selectedDay, onSelectDay, privacyOn, reminders }: Calenda
       string,
       {
         date: Date;
-        transactions: (typeof calendarTransactions)[number][];
-        reminders: (typeof mockReminders)[number][];
-        notes: (typeof calendarNotes)[number][];
+        transactions: TransactionRecord[];
+        reminders: ReminderRecord[];
+        notes: NoteRecord[];
       }
     >();
 
@@ -1072,7 +1058,7 @@ const TimelineTransactionRow = ({ tx, privacyOn }: TimelineTransactionRowProps) 
 };
 
 interface TimelineReminderItemProps {
-  rem: (typeof mockReminders)[number];
+  rem: ReminderRecord;
 }
 
 const TimelineReminderItem = ({ rem }: TimelineReminderItemProps) => {
