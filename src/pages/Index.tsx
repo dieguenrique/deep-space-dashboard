@@ -18,6 +18,7 @@ import {
   CalendarDays,
   ChevronDown,
   ChevronUp,
+  Check,
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -955,7 +956,7 @@ const RemindersTab = ({ reminders, onCompleteReminder }: { reminders: ReminderRe
     <section className="space-y-3">
       <div className="flex items-center gap-2">
         <span className="tag-pill bg-[hsl(var(--reminders-accent))]/20 text-xs">Lembretes</span>
-        <span className="text-[11px] text-muted-foreground">Linha do tempo do que importa hoje</span>
+        <span className="text-[11px] text-muted-foreground">Lista de tarefas do dia</span>
       </div>
 
       {items.length === 0 ? (
@@ -966,57 +967,46 @@ const RemindersTab = ({ reminders, onCompleteReminder }: { reminders: ReminderRe
           </p>
         </div>
       ) : (
-        <div className="relative flex-1 px-4 mt-2">
-          {/* The Vertical Line */}
-          <div className="absolute left-[29px] top-4 bottom-0 w-[2px] bg-gradient-to-b from-[hsl(var(--reminders-accent))/0.5] via-[hsl(var(--muted))] to-transparent z-0" />
+        <div className="flex flex-col space-y-3">
+          {items.map((rem) => (
+            <div
+              key={rem.id}
+              className="group flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4 text-xs shadow-sm backdrop-blur-md transition-all hover:bg-white/10"
+            >
+              <div className="flex items-center gap-4">
+                {/* Interactive Checkbox */}
+                <button
+                  type="button"
+                  onClick={() => handleComplete(rem.id)}
+                  className={cn(
+                    "flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all",
+                    rem.status === "done"
+                      ? "border-emerald-500 bg-emerald-500 text-white"
+                      : "border-[hsl(var(--reminders-accent))] text-transparent hover:bg-[hsl(var(--reminders-accent))/0.1]",
+                  )}
+                >
+                  {rem.status === "done" && <Check size={14} strokeWidth={3} />}
+                </button>
 
-          <div className="grid grid-cols-[32px_1fr] gap-x-4 relative z-10">
-            {items.map((rem) => (
-              <>
-                {/* The Dot Column */}
-                <div key={`dot-${rem.id}`} className="flex flex-col items-center pt-5">
-                  <div className="relative flex items-center justify-center">
-                    {rem.status === "pending" ? (
-                      <>
-                        <div className="absolute h-3 w-3 rounded-full bg-[hsl(var(--reminders-accent))] animate-pulse-glow" />
-                        <div className="h-3 w-3 rounded-full bg-[hsl(var(--reminders-accent))] ring-4 ring-[hsl(var(--background))] relative z-10" />
-                      </>
-                    ) : (
-                      <div className="h-3 w-3 rounded-full bg-slate-600 ring-4 ring-[hsl(var(--background))]" />
-                    )}
-                  </div>
-                </div>
-
-                {/* The Card Column */}
-                <div key={`card-${rem.id}`} className="flex flex-col py-3">
-                  <div
+                {/* Text Content */}
+                <div className="flex flex-col">
+                  <span
                     className={cn(
-                      "rounded-xl p-4 border border-white/10 backdrop-blur-md transition-all",
-                      rem.status === "done"
-                        ? "opacity-50"
-                        : "bg-gradient-to-r from-[hsl(var(--reminders-accent))/0.1] to-transparent border-l-4 border-l-[hsl(var(--reminders-accent))]",
+                      "text-sm font-medium",
+                      rem.status === "done" ? "text-white/30 line-through" : "text-foreground",
                     )}
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-white text-lg font-bold leading-snug">{rem.title}</h3>
-                      {rem.timeLabel && (
-                        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-[hsl(var(--reminders-accent))/0.2] border border-[hsl(var(--reminders-accent))/0.2]">
-                          <span className="text-[hsl(var(--reminders-accent))] text-xs font-bold">{rem.timeLabel}</span>
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleComplete(rem.id)}
-                      className="mt-2 flex items-center justify-center h-8 w-full rounded-lg bg-[hsl(var(--reminders-accent))] text-white shadow-[0_0_10px_rgba(238,43,173,0.5)] hover:scale-105 transition-transform"
-                    >
-                      {rem.status === "pending" ? "Concluir" : "Concluído"}
-                    </button>
-                  </div>
+                    {rem.title}
+                  </span>
+                  {rem.timeLabel && (
+                    <span className="text-[11px] font-bold text-[hsl(var(--reminders-accent))]">
+                      {rem.timeLabel}
+                    </span>
+                  )}
                 </div>
-              </>
-            ))}
-          </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </section>
