@@ -6,6 +6,7 @@ export type TransactionRecord = {
   title: string;
   category: string;
   amount: number; // negative for gastos, positive for receitas
+  responsavel?: string | null;
 };
 
 export type ReminderStatus = "pending" | "done";
@@ -42,7 +43,7 @@ function toTimeLabel(dateTime: string | null): string {
 export async function fetchTransactions(startDate: Date, endDate: Date): Promise<TransactionRecord[]> {
   const { data, error } = await supabase
     .from("financeiro_registros")
-    .select("id, data_hora, valor, categoria, tipo, descricao")
+    .select("id, data_hora, valor, categoria, tipo, descricao, responsavel")
     .gte("data_hora", startDate.toISOString())
     .lte("data_hora", endDate.toISOString())
     .order("data_hora", { ascending: true });
@@ -51,14 +52,17 @@ export async function fetchTransactions(startDate: Date, endDate: Date): Promise
 
   return (data ?? []).map((row: any) => {
     const rawValue = typeof row.valor === "number" ? row.valor : Number(row.valor ?? 0);
-    const sign = row.tipo === "gasto" ? -1 : 1;
+    const tipo = (row.tipo ?? "").toString().toLowerCase();
+    const isExpense = tipo.includes("gasto") || tipo.includes("despesa") || tipo.includes("saída") || tipo.includes("saida");
+    const multiplier = isExpense ? -1 : 1;
 
     return {
       id: row.id,
       date: toDateKey(row.data_hora),
       title: row.descricao ?? "",
       category: row.categoria ?? "Outros",
-      amount: sign * rawValue,
+      amount: rawValue * multiplier,
+      responsavel: row.responsavel ?? null,
     } satisfies TransactionRecord;
   });
 }
