@@ -1,5 +1,5 @@
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Eye,
   EyeOff,
@@ -17,23 +17,11 @@ import {
   CheckCircle2,
   CalendarDays,
 } from "lucide-react";
-import { MOCK_USERS, type DashboardUser } from "@/lib/supabaseClient";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Radar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Area, AreaChart, CartesianGrid, Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
+import { MOCK_USERS, type DashboardUser } from "@/lib/supabaseClient";
 import { cn } from "@/lib/utils";
 
 const financeEvolution = [
@@ -45,32 +33,6 @@ const financeEvolution = [
   { month: "Jun", value: 2400 },
 ];
 
-const financeCategories = [
-  { category: "Alimentação", value: 65 },
-  { category: "Transporte", value: 35 },
-  { category: "Lazer", value: 42 },
-  { category: "Saúde", value: 28 },
-  { category: "Outros", value: 30 },
-];
-
-const mockNotes = [
-  { id: 1, userId: "351932966990", title: "Planejamento da semana", body: "Revisar metas de gastos, separar horário para leitura e treino.", tone: "finance" },
-  { id: 2, userId: "351932966990", title: "Ideias de side hustle", body: "Newsletter em PT-BR sobre finanças pessoais digitais.", tone: "notes" },
-  { id: 3, userId: "351929426244", title: "To-dos de hoje", body: "Enviar comprovantes, renegociar plano de internet, backup do Notion.", tone: "reminders" },
-  { id: 4, userId: "351929426244", title: "Viagem SP", body: "Criar orçamento diário com teto em restaurantes e transporte.", tone: "finance" },
-];
-
-const mockReminders = [
-  { id: 1, userId: "351932966990", title: "Pagar cartão de crédito", time: "Hoje · 18:00", status: "pending" as const, date: "2025-01-10" },
-  { id: 2, userId: "351932966990", title: "Rever orçamento do mês", time: "Amanhã · 09:00", status: "pending" as const, date: "2025-01-11" },
-  { id: 3, userId: "351929426244", title: "Assinar relatório de investimentos", time: "Concluído ontem", status: "done" as const, date: "2025-01-09" },
-];
-
-const currencyFormatter = new Intl.NumberFormat("pt-PT", {
-  style: "currency",
-  currency: "EUR",
-});
-
 const financeEvolutionThisMonth = [
   { day: "1", value: 400 },
   { day: "5", value: 650 },
@@ -80,6 +42,63 @@ const financeEvolutionThisMonth = [
   { day: "25", value: 1600 },
   { day: "30", value: 1750 },
 ];
+
+const financeCategories = [
+  { category: "Alimentação", value: 65 },
+  { category: "Transporte", value: 35 },
+  { category: "Lazer", value: 42 },
+  { category: "Saúde", value: 28 },
+  { category: "Outros", value: 30 },
+];
+
+const mockNotes = [
+  {
+    id: 1,
+    userId: "351932966990",
+    title: "Planejamento da semana",
+    body: "Revisar metas de gastos, separar horário para leitura e treino.",
+    tone: "finance",
+  },
+  {
+    id: 2,
+    userId: "351932966990",
+    title: "Ideias de side hustle",
+    body: "Newsletter em PT-BR sobre finanças pessoais digitais.",
+    tone: "notes",
+  },
+  {
+    id: 3,
+    userId: "351929426244",
+    title: "To-dos de hoje",
+    body: "Enviar comprovantes, renegociar plano de internet, backup do Notion.",
+    tone: "reminders",
+  },
+  {
+    id: 4,
+    userId: "351929426244",
+    title: "Viagem SP",
+    body: "Criar orçamento diário com teto em restaurantes e transporte.",
+    tone: "finance",
+  },
+];
+
+const mockReminders = [
+  { id: 1, userId: "351932966990", title: "Pagar cartão de crédito", time: "Hoje · 18:00", status: "pending" as const, date: "2025-01-10" },
+  { id: 2, userId: "351932966990", title: "Rever orçamento do mês", time: "Amanhã · 09:00", status: "pending" as const, date: "2025-01-11" },
+  { id: 3, userId: "351929426244", title: "Assinar relatório de investimentos", time: "Concluído ontem", status: "done" as const, date: "2025-01-09" },
+  { id: 4, userId: "351932966990", title: "Rever metas trimestrais", time: "15 Jan · 08:30", status: "pending" as const, date: "2025-01-15" },
+  { id: 5, userId: "351932966990", title: "Renovar seguro do carro", time: "20 Jan · 14:00", status: "pending" as const, date: "2025-01-20" },
+  { id: 6, userId: "351932966990", title: "Enviar fatura para cliente", time: "05 Jan · 11:00", status: "done" as const, date: "2025-01-05" },
+  { id: 7, userId: "351929426244", title: "Agendar consulta médica", time: "12 Jan · 16:00", status: "pending" as const, date: "2025-01-12" },
+  { id: 8, userId: "351929426244", title: "Reunião com contador", time: "22 Jan · 10:00", status: "pending" as const, date: "2025-01-22" },
+  { id: 9, userId: "351932966990", title: "Atualizar planilha de investimentos", time: "27 Jan · 19:00", status: "pending" as const, date: "2025-01-27" },
+  { id: 10, userId: "351929426244", title: "Backup de documentos", time: "30 Jan · 21:00", status: "done" as const, date: "2025-01-30" },
+];
+
+const currencyFormatter = new Intl.NumberFormat("pt-PT", {
+  style: "currency",
+  currency: "EUR",
+});
 
 const recentTransactions = [
   {
@@ -120,6 +139,29 @@ const recentTransactions = [
   },
 ];
 
+const calendarTransactions = [
+  { id: 101, title: "Salário", amount: 3200, category: "Receita", date: "2025-01-01" },
+  { id: 102, title: "Supermercado", amount: -120.4, category: "Alimentação", date: "2025-01-02" },
+  { id: 103, title: "Uber", amount: -18.9, category: "Transporte", date: "2025-01-03" },
+  { id: 104, title: "Restaurante · jantar", amount: -85.3, category: "Alimentação", date: "2025-01-05" },
+  { id: 105, title: "Freelancer · projeto", amount: 540, category: "Receita", date: "2025-01-06" },
+  { id: 106, title: "Cinema", amount: -42, category: "Lazer", date: "2025-01-08" },
+  { id: 107, title: "Aluguel", amount: -950, category: "Casa", date: "2025-01-10" },
+  { id: 108, title: "Ginásio", amount: -39.9, category: "Saúde", date: "2025-01-11" },
+  { id: 109, title: "Reembolso empresa", amount: 210, category: "Receita", date: "2025-01-12" },
+  { id: 110, title: "Café coworking", amount: -12.5, category: "Alimentação", date: "2025-01-15" },
+  { id: 111, title: "Combustível", amount: -70, category: "Transporte", date: "2025-01-16" },
+  { id: 112, title: "Streaming anual", amount: -199, category: "Lazer", date: "2025-01-18" },
+  { id: 113, title: "Bónus", amount: 860, category: "Receita", date: "2025-01-20" },
+  { id: 114, title: "Farmácia", amount: -26.7, category: "Saúde", date: "2025-01-22" },
+  { id: 115, title: "Restaurante · família", amount: -132.8, category: "Alimentação", date: "2025-01-24" },
+  { id: 116, title: "Táxi", amount: -15.2, category: "Transporte", date: "2025-01-25" },
+  { id: 117, title: "Consultoria", amount: 430, category: "Receita", date: "2025-01-27" },
+  { id: 118, title: "Bar · amigos", amount: -64.3, category: "Lazer", date: "2025-01-28" },
+  { id: 119, title: "Supermercado grande", amount: -210.5, category: "Alimentação", date: "2025-01-29" },
+  { id: 120, title: "Rendimento investimentos", amount: 190.1, category: "Receita", date: "2025-01-30" },
+];
+
 const getCategoryIcon = (category: string) => {
   switch (category) {
     case "Alimentação":
@@ -157,8 +199,9 @@ const bottomDockItems = [
   { key: "calendar", label: "Calendário", icon: CalendarDays },
 ] as const;
 
-
 type TabKey = (typeof bottomDockItems)[number]["key"];
+
+const getDateKey = (date: Date) => date.toISOString().slice(0, 10);
 
 const Index = () => {
   const [selectedUser, setSelectedUser] = useState<DashboardUser | null>(null);
@@ -166,9 +209,7 @@ const Index = () => {
   const [privacyOn, setPrivacyOn] = useState(false);
   const [notesQuery, setNotesQuery] = useState("");
   const [focusedNoteId, setFocusedNoteId] = useState<number | null>(null);
-  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
-  const [globalSearchQuery, setGlobalSearchQuery] = useState("");
-  const [selectedDay, setSelectedDay] = useState<Date | undefined>();
+  const [selectedDay, setSelectedDay] = useState<Date | undefined>(new Date());
 
   const filteredNotes = useMemo(() => {
     if (!selectedUser) return [];
@@ -222,22 +263,6 @@ const Index = () => {
             </button>
           </header>
 
-          {/* Global search bar */}
-          <div className="mb-4">
-            <button
-              type="button"
-              onClick={() => setGlobalSearchOpen(true)}
-              className="aura-card aura-strong glass-card flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-left text-xs hover:bg-card/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-            >
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <span className="flex-1 text-muted-foreground/80">Buscar em tudo (notas, lembretes, transações)</span>
-              <span className="hidden text-[10px] text-muted-foreground/70 md:inline-flex items-center gap-1">
-                <kbd className="rounded bg-muted/60 px-1.5 py-0.5 text-[9px] font-medium">⌘</kbd>
-                <kbd className="rounded bg-muted/60 px-1.5 py-0.5 text-[9px] font-medium">K</kbd>
-              </span>
-            </button>
-          </div>
-
           {/* Tabs content */}
           <div className="flex-1 pb-4">
             <motion.div
@@ -264,6 +289,7 @@ const Index = () => {
                   selectedDay={selectedDay}
                   onSelectDay={setSelectedDay}
                   privacyOn={privacyOn}
+                  reminders={filteredReminders}
                 />
               )}
             </motion.div>
@@ -282,7 +308,7 @@ const Index = () => {
                     onClick={() => setActiveTab(item.key)}
                     className={cn(
                       "group flex flex-1 flex-col items-center gap-0.5 rounded-2xl px-2 py-1.5 text-[11px] font-medium transition-colors",
-                      active ? "text-primary" : "text-muted-foreground/80 hover:text-foreground"
+                      active ? "text-primary" : "text-muted-foreground/80 hover:text-foreground",
                     )}
                   >
                     <motion.div
@@ -294,7 +320,7 @@ const Index = () => {
                         "flex h-9 w-9 items-center justify-center rounded-2xl border text-xs",
                         active
                           ? "border-primary/60 bg-primary/15 shadow-[0_0_30px_hsl(var(--primary)/0.5)]"
-                          : "border-border/60 bg-card/60"
+                          : "border-border/60 bg-card/60",
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -315,30 +341,6 @@ const Index = () => {
                   <p className="text-sm leading-relaxed text-muted-foreground">{focusNote.body}</p>
                 </div>
               )}
-            </DialogContent>
-          </Dialog>
-
-          {/* Global search overlay */}
-          <Dialog open={globalSearchOpen} onOpenChange={setGlobalSearchOpen}>
-            <DialogContent className="glass-card aura-card max-w-xl border border-border/70 bg-background/95 p-0">
-              <div className="border-b border-border/70 px-4 py-2.5">
-                <div className="relative flex items-center gap-2">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    autoFocus
-                    value={globalSearchQuery}
-                    onChange={(e) => setGlobalSearchQuery(e.target.value)}
-                    placeholder="Digite para buscar em notas, lembretes e transações"
-                    className="h-9 rounded-full border-border/70 bg-card/80 pl-9 text-xs placeholder:text-muted-foreground/70"
-                  />
-                </div>
-              </div>
-              <GlobalSearchResults
-                query={globalSearchQuery}
-                notes={filteredNotes}
-                reminders={filteredReminders}
-                transactions={recentTransactions}
-              />
             </DialogContent>
           </Dialog>
         </motion.main>
@@ -406,11 +408,10 @@ const LandingLogin = ({ onSelectUser }: { onSelectUser: (user: DashboardUser) =>
 
 const FinanceTab = ({ privacyOn }: { privacyOn: boolean }) => {
   const [evolutionFilter, setEvolutionFilter] = useState<"6m" | "month">("6m");
-
-  const formatCurrency = (value: number) => (privacyOn ? "•••••" : currencyFormatter.format(value));
-
   const evolutionData = evolutionFilter === "6m" ? financeEvolution : financeEvolutionThisMonth;
   const evolutionXKey = evolutionFilter === "6m" ? "month" : "day";
+
+  const formatCurrency = (value: number) => (privacyOn ? "•••••" : currencyFormatter.format(value));
 
   return (
     <section className="space-y-4">
@@ -423,10 +424,10 @@ const FinanceTab = ({ privacyOn }: { privacyOn: boolean }) => {
         </div>
       </div>
 
-      {/* Scrollable KPI cards */}
+      {/* KPI cards */}
       <div className="no-scrollbar -mx-2 flex gap-3 overflow-x-auto px-2 pb-1">
         <motion.div
-          className="glass-card min-w-[72%] max-w-sm flex-1 rounded-2xl p-4"
+          className="glass-card aura-card min-w-[72%] max-w-sm flex-1 rounded-2xl p-4"
           variants={cardHover}
           initial="rest"
           whileHover="hover"
@@ -450,7 +451,12 @@ const FinanceTab = ({ privacyOn }: { privacyOn: boolean }) => {
           </div>
         </motion.div>
 
-        <motion.div className="glass-card min-w-[60%] max-w-xs flex-1 rounded-2xl p-4" variants={cardHover} initial="rest" whileHover="hover">
+        <motion.div
+          className="glass-card aura-card min-w-[60%] max-w-xs flex-1 rounded-2xl p-4"
+          variants={cardHover}
+          initial="rest"
+          whileHover="hover"
+        >
           <div className="flex items-center justify-between gap-3">
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">Receitas vs despesas</p>
@@ -477,7 +483,12 @@ const FinanceTab = ({ privacyOn }: { privacyOn: boolean }) => {
           </div>
         </motion.div>
 
-        <motion.div className="glass-card min-w-[60%] max-w-xs flex-1 rounded-2xl p-4" variants={cardHover} initial="rest" whileHover="hover">
+        <motion.div
+          className="glass-card aura-card min-w-[60%] max-w-xs flex-1 rounded-2xl p-4"
+          variants={cardHover}
+          initial="rest"
+          whileHover="hover"
+        >
           <p className="text-xs text-muted-foreground">Taxa de economia</p>
           <div className="mt-2 flex items-center gap-3">
             <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-400/30 via-primary/25 to-emerald-300/30">
@@ -552,7 +563,7 @@ const FinanceTab = ({ privacyOn }: { privacyOn: boolean }) => {
           </div>
         </motion.div>
 
-        <motion.div className="glass-card rounded-2xl p-4" variants={cardHover} initial="rest" whileHover="hover">
+        <motion.div className="glass-card aura-card rounded-2xl p-4" variants={cardHover} initial="rest" whileHover="hover">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Categorias</p>
             <span className="text-[11px] text-muted-foreground">Radar mensal</span>
@@ -646,7 +657,7 @@ const NotesTab = ({ notes, query, onQueryChange, onOpenNote }: NotesTabProps) =>
       </div>
 
       {notes.length === 0 ? (
-        <div className="glass-card flex flex-col items-center justify-center gap-1 rounded-2xl p-5 text-center">
+        <div className="glass-card aura-card flex flex-col items-center justify-center gap-1 rounded-2xl p-5 text-center">
           <p className="text-xs font-medium">Nenhuma nota para este usuário ainda.</p>
           <p className="text-[11px] text-muted-foreground">
             Quando você conectar sua base, apenas notas do usuário logado aparecerão aqui.
@@ -660,11 +671,11 @@ const NotesTab = ({ notes, query, onQueryChange, onOpenNote }: NotesTabProps) =>
               type="button"
               onClick={() => onOpenNote(note.id)}
               className={cn(
-                "mb-3 w-full break-inside-avoid rounded-2xl border px-3 py-3 text-left text-xs shadow-sm transition-transform hover:-translate-y-1",
+                "aura-card mb-3 w-full break-inside-avoid rounded-2xl border px-3 py-3 text-left text-xs shadow-sm transition-transform hover:-translate-y-1",
                 "border-border/60 bg-card/80 backdrop-blur-md",
                 note.tone === "finance" && "border-[hsl(var(--finance-gradient-start))]/40",
                 note.tone === "notes" && "border-[hsl(var(--notes-accent))]/40",
-                note.tone === "reminders" && "border-[hsl(var(--reminders-accent))]/40"
+                note.tone === "reminders" && "border-[hsl(var(--reminders-accent))]/40",
               )}
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
@@ -680,16 +691,8 @@ const NotesTab = ({ notes, query, onQueryChange, onOpenNote }: NotesTabProps) =>
   );
 };
 
-const RemindersTab = ({
-  reminders,
-}: {
-  reminders: typeof mockReminders;
-}) => {
+const RemindersTab = ({ reminders }: { reminders: typeof mockReminders }) => {
   const [items, setItems] = useState(reminders);
-
-  useEffect(() => {
-    setItems(reminders);
-  }, [reminders]);
 
   const handleComplete = (id: number) => {
     setItems((prev) => prev.map((r) => (r.id === id ? { ...r, status: "done" as const } : r)));
@@ -703,7 +706,7 @@ const RemindersTab = ({
       </div>
 
       {items.length === 0 ? (
-        <div className="glass-card flex flex-col items-center justify-center gap-1 rounded-2xl p-5 text-center">
+        <div className="glass-card aura-card flex flex-col items-center justify-center gap-1 rounded-2xl p-5 text-center">
           <p className="text-xs font-medium">Nenhum lembrete para este usuário.</p>
           <p className="text-[11px] text-muted-foreground">
             Quando conectar sua base, apenas lembretes do usuário logado serão exibidos.
@@ -785,141 +788,158 @@ interface CalendarTabProps {
   selectedDay: Date | undefined;
   onSelectDay: (date: Date | undefined) => void;
   privacyOn: boolean;
+  reminders: typeof mockReminders;
 }
 
-const CalendarTab = ({ selectedDay, onSelectDay }: CalendarTabProps) => {
+const CalendarTab = ({ selectedDay, onSelectDay, privacyOn, reminders }: CalendarTabProps) => {
+  const effectiveDay = selectedDay ?? new Date();
+  const selectedKey = getDateKey(effectiveDay);
+
+  const expenseDates = useMemo(
+    () => new Set(calendarTransactions.filter((t) => t.amount < 0).map((t) => t.date)),
+    [],
+  );
+
+  const incomeDates = useMemo(
+    () => new Set(calendarTransactions.filter((t) => t.amount > 0).map((t) => t.date)),
+    [],
+  );
+
+  const reminderDates = useMemo(() => new Set(reminders.map((r) => r.date)), [reminders]);
+
+  const dayTransactions = useMemo(
+    () => calendarTransactions.filter((t) => t.date === selectedKey),
+    [selectedKey],
+  );
+
+  const dayReminders = useMemo(
+    () => reminders.filter((r) => r.date === selectedKey),
+    [reminders, selectedKey],
+  );
+
+  const headerLabel = effectiveDay.toLocaleDateString("pt-PT", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+
+  const DayContent = (props: any) => {
+    const date: Date = props.date;
+    const key = getDateKey(date);
+    const hasExpense = expenseDates.has(key);
+    const hasIncome = incomeDates.has(key);
+    const hasReminder = reminderDates.has(key);
+
+    return (
+      <div className="flex flex-col items-center justify-center">
+        <span>{date.getDate()}</span>
+        <div className="mt-0.5 flex gap-0.5">
+          {hasExpense && <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />}
+          {hasIncome && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />}
+          {hasReminder && <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <section className="space-y-3">
       <div className="flex items-center gap-2">
         <span className="tag-pill bg-[hsl(var(--finance-gradient-start))]/15 text-xs">Calendário</span>
         <span className="text-[11px] text-muted-foreground">Visão unificada de finanças e lembretes</span>
       </div>
-      <div className="glass-card aura-card rounded-2xl p-4">
-        <Calendar
-          mode="single"
-          selected={selectedDay}
-          onSelect={onSelectDay}
-          className="p-3 pointer-events-auto"
-        />
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)] md:items-start">
+        <div className="glass-card aura-card aura-strong rounded-2xl p-4">
+          <Calendar
+            mode="single"
+            selected={selectedDay}
+            onSelect={onSelectDay}
+            className="p-3 pointer-events-auto"
+            components={{ DayContent }}
+            classNames={{
+              day_selected:
+                "bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] shadow-[0_0_0_1px_hsl(var(--accent)),0_0_28px_hsl(var(--accent)/0.85)]",
+            }}
+          />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                Agenda do dia
+              </p>
+              <p className="text-sm font-semibold tracking-tight">{headerLabel}</p>
+            </div>
+            <span className="rounded-full bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground">
+              {dayTransactions.length + dayReminders.length} itens
+            </span>
+          </div>
+
+          {dayTransactions.length === 0 && dayReminders.length === 0 ? (
+            <div className="glass-card aura-card rounded-2xl p-3 text-xs text-muted-foreground">
+              Nenhum evento registado para esta data.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {dayTransactions.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                    Movimentações
+                  </p>
+                  {dayTransactions.map((tx) => {
+                    const isNegative = tx.amount < 0;
+                    return (
+                      <div
+                        key={tx.id}
+                        className="glass-card aura-card flex items-center justify-between rounded-2xl px-3 py-2"
+                      >
+                        <div>
+                          <p className="text-xs font-medium">{tx.title}</p>
+                          <p className="text-[11px] text-muted-foreground">{tx.category}</p>
+                        </div>
+                        <p
+                          className={cn(
+                            "text-xs font-medium",
+                            isNegative ? "text-rose-400" : "text-emerald-400",
+                          )}
+                        >
+                          {privacyOn
+                            ? "•••••"
+                            : `${isNegative ? "-" : "+"} ${currencyFormatter.format(Math.abs(tx.amount))}`}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {dayReminders.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                    Lembretes
+                  </p>
+                  {dayReminders.map((reminder) => (
+                    <div
+                      key={reminder.id}
+                      className="glass-card aura-card flex items-center justify-between rounded-2xl px-3 py-2 text-xs"
+                    >
+                      <div>
+                        <p className="font-medium">{reminder.title}</p>
+                        <p className="text-[11px] text-muted-foreground">{reminder.time}</p>
+                      </div>
+                      <span className="rounded-full bg-muted/50 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                        {reminder.status === "pending" ? "Pendente" : "Concluído"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
 };
 
 export default Index;
-
-interface GlobalSearchResultsProps {
-  query: string;
-  notes: typeof mockNotes;
-  reminders: typeof mockReminders;
-  transactions: typeof recentTransactions;
-}
-
-const GlobalSearchResults = ({ query, notes, reminders, transactions }: GlobalSearchResultsProps) => {
-  const q = query.trim().toLowerCase();
-
-  const hasQuery = q.length > 0;
-
-  const matchedNotes = useMemo(
-    () =>
-      !hasQuery
-        ? []
-        : notes.filter((n) => n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q)),
-    [hasQuery, notes, q],
-  );
-
-  const matchedReminders = useMemo(
-    () =>
-      !hasQuery
-        ? []
-        : reminders.filter((r) => r.title.toLowerCase().includes(q) || r.time.toLowerCase().includes(q)),
-    [hasQuery, reminders, q],
-  );
-
-  const matchedTransactions = useMemo(
-    () =>
-      !hasQuery
-        ? []
-        : transactions.filter((t) => t.title.toLowerCase().includes(q) || t.subtitle.toLowerCase().includes(q)),
-    [hasQuery, transactions, q],
-  );
-
-  if (!hasQuery) {
-    return (
-      <div className="px-4 py-6 text-center text-xs text-muted-foreground">
-        Comece a digitar para buscar em notas, lembretes e movimentações.
-      </div>
-    );
-  }
-
-  const hasResults = matchedNotes.length + matchedReminders.length + matchedTransactions.length > 0;
-
-  if (!hasResults) {
-    return (
-      <div className="px-4 py-6 text-center text-xs text-muted-foreground">
-        Nada encontrado para "{query}".
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-h-[320px] space-y-3 overflow-y-auto px-4 py-3 text-xs">
-      {matchedNotes.length > 0 && (
-        <section>
-          <p className="mb-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Notas</p>
-          <div className="space-y-1.5">
-            {matchedNotes.map((note) => (
-              <div key={note.id} className="rounded-lg border border-border/60 bg-card/70 px-2.5 py-1.5">
-                <p className="font-medium">{note.title}</p>
-                <p className="text-[11px] text-muted-foreground line-clamp-2">{note.body}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {matchedReminders.length > 0 && (
-        <section>
-          <p className="mb-1 mt-2 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Lembretes</p>
-          <div className="space-y-1.5">
-            {matchedReminders.map((reminder) => (
-              <div
-                key={reminder.id}
-                className="flex items-center justify-between rounded-lg border border-border/60 bg-card/70 px-2.5 py-1.5"
-              >
-                <div>
-                  <p className="font-medium">{reminder.title}</p>
-                  <p className="text-[11px] text-muted-foreground">{reminder.time}</p>
-                </div>
-                <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                  {reminder.status === "pending" ? "Pendente" : "Concluído"}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {matchedTransactions.length > 0 && (
-        <section>
-          <p className="mb-1 mt-2 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Movimentações
-          </p>
-          <div className="space-y-1.5">
-            {matchedTransactions.map((tx) => (
-              <div
-                key={tx.id}
-                className="flex items-center justify-between rounded-lg border border-border/60 bg-card/70 px-2.5 py-1.5"
-              >
-                <div>
-                  <p className="font-medium">{tx.title}</p>
-                  <p className="text-[11px] text-muted-foreground">{tx.subtitle}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
-  );
-};
