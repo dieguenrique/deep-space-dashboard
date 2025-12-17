@@ -16,6 +16,8 @@ import {
   PartyPopper,
   CheckCircle2,
   CalendarDays,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -492,6 +494,9 @@ const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transacti
   const totalIncome = transactions.filter((tx) => tx.amount > 0).reduce((sum, tx) => sum + tx.amount, 0);
   const totalExpense = transactions.filter((tx) => tx.amount < 0).reduce((sum, tx) => sum + tx.amount, 0);
 
+  const [openIncomeByUser, setOpenIncomeByUser] = useState<Record<string, boolean>>({});
+  const [openExpenseByUser, setOpenExpenseByUser] = useState<Record<string, boolean>>({});
+
   const formatCurrency = (value: number) => (privacyOn ? "•••••" : currencyFormatter.format(value));
 
   return (
@@ -625,18 +630,111 @@ const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transacti
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4 text-xs">
-                <div className="rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-3">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-400">Entrou</span>
+                {/* Income box */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setOpenIncomeByUser((prev) => ({ ...prev, [user.id]: !prev[user.id] }))
+                  }
+                  className="group cursor-pointer rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-3 text-left transition-colors hover:bg-emerald-500/10"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-400">
+                      Entrou
+                    </span>
+                    <ChevronDown
+                      className={cn(
+                        "h-3 w-3 text-emerald-400 transition-transform",
+                        openIncomeByUser[user.id] && "rotate-180",
+                      )}
+                    />
+                  </div>
                   <p className="mt-1 text-sm font-bold text-emerald-300">
                     {privacyOn ? "•••••" : currencyFormatter.format(income)}
                   </p>
-                </div>
-                <div className="rounded-xl border border-rose-500/10 bg-rose-500/5 p-3">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-400">Saiu</span>
+                  {openIncomeByUser[user.id] && (
+                    <div className="mt-2 space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                      {userTxs
+                        .filter((t) => t.amount > 0)
+                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .slice(0, 10)
+                        .map((t) => {
+                          const Icon = getCategoryIcon(t.category);
+                          return (
+                            <div
+                              key={t.id}
+                              className="flex items-center justify-between gap-2 text-[11px] text-emerald-300"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10">
+                                  <Icon className="h-3 w-3" />
+                                </span>
+                                <span className="line-clamp-1">{t.title}</span>
+                              </div>
+                              <span className="font-semibold">
+                                {privacyOn
+                                  ? "•••••"
+                                  : `+ ${currencyFormatter.format(Math.abs(t.amount))}`}
+                              </span>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </button>
+
+                {/* Expense box */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setOpenExpenseByUser((prev) => ({ ...prev, [user.id]: !prev[user.id] }))
+                  }
+                  className="group cursor-pointer rounded-xl border border-rose-500/10 bg-rose-500/5 p-3 text-left transition-colors hover:bg-rose-500/10"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-400">
+                      Saiu
+                    </span>
+                    <ChevronDown
+                      className={cn(
+                        "h-3 w-3 text-rose-400 transition-transform",
+                        openExpenseByUser[user.id] && "rotate-180",
+                      )}
+                    />
+                  </div>
                   <p className="mt-1 text-sm font-bold text-rose-300">
                     {privacyOn ? "•••••" : currencyFormatter.format(Math.abs(expense))}
                   </p>
-                </div>
+                  {openExpenseByUser[user.id] && (
+                    <div className="mt-2 space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                      {userTxs
+                        .filter((t) => t.amount < 0)
+                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .slice(0, 10)
+                        .map((t) => {
+                          const Icon = getCategoryIcon(t.category);
+                          return (
+                            <div
+                              key={t.id}
+                              className="flex items-center justify-between gap-2 text-[11px] text-rose-300"
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-500/10">
+                                  <Icon className="h-3 w-3" />
+                                </span>
+                                <span className="line-clamp-1">{t.title}</span>
+                              </div>
+                              <span className="font-semibold">
+                                {privacyOn
+                                  ? "•••••"
+                                  : `- ${currencyFormatter.format(Math.abs(t.amount))}`}
+                              </span>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </button>
               </div>
             </motion.div>
           );
