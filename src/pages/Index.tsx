@@ -398,6 +398,8 @@ const Index = () => {
   );
 };
 
+export { Index };
+
 const LandingLogin = ({ onSelectUser }: { onSelectUser: (user: DashboardUser) => void }) => {
   return (
     <div className="relative flex min-h-screen items-center justify-center px-4">
