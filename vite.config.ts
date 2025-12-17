@@ -16,11 +16,17 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.png"],
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg}"]
+      },
       manifest: {
         name: "Deep Space Personal Finance Dashboard",
         short_name: "DeepSpace",
+        description: "Deep Space Personal Finance Dashboard PWA",
         start_url: "/",
+        scope: "/",
         display: "standalone",
+        orientation: "portrait",
         background_color: "#020617",
         theme_color: "#020617",
         icons: [
@@ -28,13 +34,25 @@ export default defineConfig(({ mode }) => ({
             src: "/pwa-192x192.png",
             sizes: "192x192",
             type: "image/png",
-            purpose: "any maskable",
+            purpose: "any",
+          },
+          {
+            src: "/pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable",
           },
           {
             src: "/pwa-512x512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "any maskable",
+            purpose: "any",
+          },
+          {
+            src: "/pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
           },
         ],
       },
