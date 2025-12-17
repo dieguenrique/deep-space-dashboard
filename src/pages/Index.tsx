@@ -128,7 +128,7 @@ type TabKey = (typeof bottomDockItems)[number]["key"];
 const Index = () => {
   const [selectedUser, setSelectedUser] = useState<DashboardUser | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("finance");
-  const [privacyOn, setPrivacyOn] = useState(true);
+  const [privacyOn, setPrivacyOn] = useState(false);
   const [notesQuery, setNotesQuery] = useState("");
   const [focusedNoteId, setFocusedNoteId] = useState<number | null>(null);
 
@@ -676,7 +676,7 @@ const RemindersTab = ({
                           className={cn(
                             "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors",
                             isPending
-                              ? "border-[hsl(var(--reminders-accent))]/70 bg-[hsl(var(--reminders-accent))]/20 text-foreground hover:bg-[hsl(var(--reminders-accent))]/30"
+                              ? "border-emerald-400 bg-emerald-500 text-background hover:bg-emerald-400"
                               : "border-border/60 bg-muted/40 text-muted-foreground cursor-default"
                           )}
                         >
