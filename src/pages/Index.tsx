@@ -829,7 +829,7 @@ const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transacti
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Movimentações recentes</p>
           <button className="text-[11px] text-muted-foreground hover:text-foreground">Ver tudo</button>
         </div>
-        <div className="space-y-2.5">
+        <div className="space-y-3 overflow-y-auto no-scrollbar max-h-[450px] pr-2">
           {transactions.map((tx) => {
             const Icon = getCategoryIcon(tx.category);
             const isNegative = tx.amount < 0;
