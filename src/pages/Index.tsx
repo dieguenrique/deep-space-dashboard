@@ -781,6 +781,31 @@ const RemindersTab = ({
   );
 };
 
+interface CalendarTabProps {
+  selectedDay: Date | undefined;
+  onSelectDay: (date: Date | undefined) => void;
+  privacyOn: boolean;
+}
+
+const CalendarTab = ({ selectedDay, onSelectDay }: CalendarTabProps) => {
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center gap-2">
+        <span className="tag-pill bg-[hsl(var(--finance-gradient-start))]/15 text-xs">Calendário</span>
+        <span className="text-[11px] text-muted-foreground">Visão unificada de finanças e lembretes</span>
+      </div>
+      <div className="glass-card aura-card rounded-2xl p-4">
+        <Calendar
+          mode="single"
+          selected={selectedDay}
+          onSelect={onSelectDay}
+          className="p-3 pointer-events-auto"
+        />
+      </div>
+    </section>
+  );
+};
+
 export default Index;
 
 interface GlobalSearchResultsProps {
