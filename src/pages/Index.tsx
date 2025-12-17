@@ -537,11 +537,19 @@ const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transacti
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">Receitas vs despesas</p>
               <div className="flex items-baseline gap-2 text-xs">
-                <span className="inline-flex items-center gap-1 text-emerald-400/90">
-                  <ArrowDownRight className="h-3 w-3" /> {formatCurrency(8200)}
+                <span className="inline-flex items-center gap-1 text-emerald-500">
+                  <ArrowDownRight className="h-3 w-3" />
+                  {formatCurrency(
+                    transactions.filter((tx) => tx.amount > 0).reduce((sum, tx) => sum + tx.amount, 0),
+                  )}
                 </span>
-                <span className="inline-flex items-center gap-1 text-rose-400/90">
-                  <ArrowUpRight className="h-3 w-3" /> {formatCurrency(5600)}
+                <span className="inline-flex items-center gap-1 text-rose-500">
+                  <ArrowUpRight className="h-3 w-3" />
+                  {formatCurrency(
+                    Math.abs(
+                      transactions.filter((tx) => tx.amount < 0).reduce((sum, tx) => sum + tx.amount, 0),
+                    ),
+                  )}
                 </span>
               </div>
               <div className="mt-2 space-y-1">
@@ -694,7 +702,7 @@ const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transacti
                   </div>
                 </div>
                 <div className="text-right text-xs">
-                  <p className={cn("font-medium", isNegative ? "text-rose-400" : "text-emerald-400")}>
+                  <p className={cn("font-medium", isNegative ? "text-rose-500" : "text-emerald-500")}>
                     {privacyOn
                       ? "•••••"
                       : `${isNegative ? "-" : "+"} ${currencyFormatter.format(Math.abs(tx.amount))}`}
@@ -1116,7 +1124,7 @@ const TimelineTransactionRow = ({ tx, privacyOn }: TimelineTransactionRowProps) 
         <div
           className={cn(
             "flex h-7 w-7 items-center justify-center rounded-full border border-border/60 bg-background/40",
-            isNegative ? "text-rose-400" : "text-emerald-400",
+            isNegative ? "text-rose-500" : "text-emerald-500",
           )}
         >
           <Icon className="h-3.5 w-3.5" />
@@ -1129,7 +1137,7 @@ const TimelineTransactionRow = ({ tx, privacyOn }: TimelineTransactionRowProps) 
       <span
         className={cn(
           "text-[11px] font-semibold",
-          isNegative ? "text-rose-400" : "text-emerald-400",
+          isNegative ? "text-rose-500" : "text-emerald-500",
         )}
       >
         {privacyOn ? "•••••" : `${isNegative ? "-" : "+"} ${currencyFormatter.format(Math.abs(tx.amount))}`}
