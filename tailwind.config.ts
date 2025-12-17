@@ -89,6 +89,11 @@ export default {
           "0%, 100%": { opacity: "0.6", transform: "scale(1)" },
           "50%": { opacity: "1", transform: "scale(1.05)" },
         },
+        "pulse-glow": {
+          "0%": { boxShadow: "0 0 0 0 rgba(238,43,173,0.7)", transform: "scale(1)" },
+          "70%": { boxShadow: "0 0 30px 12px rgba(238,43,173,0)", transform: "scale(1.08)" },
+          "100%": { boxShadow: "0 0 0 0 rgba(238,43,173,0)", transform: "scale(1)" },
+        },
         aurora: {
           "0%": { transform: "translate3d(0,0,0)" },
           "50%": { transform: "translate3d(10%, -10%, 0)" },
@@ -101,6 +106,7 @@ export default {
         "fade-in": "fade-in 0.4s ease-out",
         "scale-in": "scale-in 0.25s ease-out",
         "pulse-soft": "pulse-soft 2s ease-in-out infinite",
+        "pulse-glow": "pulse-glow 1.8s ease-out infinite",
         aurora: "aurora 18s ease-in-out infinite alternate",
       },
     },

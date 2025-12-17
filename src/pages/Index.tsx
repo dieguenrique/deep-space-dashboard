@@ -744,27 +744,36 @@ const NotesTab = ({ notes, query, onQueryChange, onOpenNote }: NotesTabProps) =>
           </p>
         </div>
       ) : (
-        <div className="columns-1 gap-3 sm:columns-2 md:columns-3">
-          {notes.map((note) => (
-            <motion.button
-              key={note.id}
-              type="button"
-              onClick={() => onOpenNote(note.id)}
-              className={cn(
-                "aura-card mb-3 w-full break-inside-avoid rounded-2xl border px-3 py-3 text-left text-xs shadow-sm transition-transform hover:-translate-y-1",
-                "border-border/60 bg-card/80 backdrop-blur-md",
-                note.tone === "finance" && "border-[hsl(var(--finance-gradient-start))]/40",
-                note.tone === "notes" && "border-[hsl(var(--notes-accent))]/40",
-                note.tone === "reminders" && "border-[hsl(var(--reminders-accent))]/40",
-              )}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/80">Nota rápida</p>
-              <h3 className="mt-1 text-sm font-semibold tracking-tight">{note.title}</h3>
-              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{note.body}</p>
-            </motion.button>
-          ))}
+        <div className="columns-2 gap-4 [column-fill:_balance]">
+          {notes.map((note) => {
+            const createdAt = new Date(note.date);
+            const now = new Date();
+            const diffMs = now.getTime() - createdAt.getTime();
+            const diffHours = diffMs / (1000 * 60 * 60);
+            const dateLabel = diffHours < 24
+              ? `${Math.max(1, Math.round(diffHours))}h ago`
+              : createdAt.toLocaleDateString("pt-PT", { day: "2-digit", month: "2-digit" });
+
+            return (
+              <motion.button
+                key={note.id}
+                type="button"
+                onClick={() => onOpenNote(note.id)}
+                className="mb-4 w-full break-inside-avoid rounded-xl border border-white/10 bg-[hsl(var(--card))/0.7] px-4 py-3 text-left text-xs shadow-lg backdrop-blur-md hover-scale"
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <h3 className="text-sm font-semibold leading-snug text-foreground">{note.title}</h3>
+                <p className="mt-1 line-clamp-3 text-[11px] leading-relaxed text-muted-foreground">{note.body}</p>
+                <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground/80">
+                  <span className="rounded-full bg-[hsl(var(--notes-accent))/0.12] px-2 py-0.5 text-[10px] font-medium text-[hsl(var(--notes-accent))]">
+                    Nota
+                  </span>
+                  <span>{dateLabel}</span>
+                </div>
+              </motion.button>
+            );
+          })}
         </div>
       )}
     </section>
@@ -777,6 +786,7 @@ const RemindersTab = ({ reminders, onCompleteReminder }: { reminders: ReminderRe
   const handleComplete = (id: number) => {
     onCompleteReminder(id);
   };
+
   return (
     <section className="space-y-3">
       <div className="flex items-center gap-2">
@@ -792,70 +802,56 @@ const RemindersTab = ({ reminders, onCompleteReminder }: { reminders: ReminderRe
           </p>
         </div>
       ) : (
-        <div className="relative pl-3">
-          <div className="absolute left-[7px] top-1 bottom-2 w-px bg-gradient-to-b from-[hsl(var(--reminders-accent))] via-border/70 to-transparent" />
-          <div className="space-y-3">
-            {items.map((reminder, index) => {
-              const isPending = reminder.status === "pending";
-              return (
-                <motion.div
-                  key={reminder.id}
-                  className="relative flex items-start gap-3"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.04 }}
-                >
-                  <div className="z-10 mt-[2px] flex h-3.5 w-3.5 items-center justify-center">
-                    <span
-                      className={cn(
-                        "block h-2.5 w-2.5 rounded-full border-2",
-                        isPending
-                          ? "border-[hsl(var(--reminders-accent))] bg-[hsl(var(--reminders-accent))]/60 animate-pulse-soft"
-                          : "border-muted bg-muted",
-                      )}
-                    />
+        <div className="relative flex-1 px-4 mt-2">
+          {/* The Vertical Line */}
+          <div className="absolute left-[29px] top-4 bottom-0 w-[2px] bg-gradient-to-b from-[hsl(var(--reminders-accent))/0.5] via-[hsl(var(--muted))] to-transparent z-0" />
+
+          <div className="grid grid-cols-[32px_1fr] gap-x-4 relative z-10">
+            {items.map((rem) => (
+              <>
+                {/* The Dot Column */}
+                <div key={`dot-${rem.id}`} className="flex flex-col items-center pt-5">
+                  <div className="relative flex items-center justify-center">
+                    {rem.status === "pending" ? (
+                      <>
+                        <div className="absolute h-3 w-3 rounded-full bg-[hsl(var(--reminders-accent))] animate-pulse-glow" />
+                        <div className="h-3 w-3 rounded-full bg-[hsl(var(--reminders-accent))] ring-4 ring-[hsl(var(--background))] relative z-10" />
+                      </>
+                    ) : (
+                      <div className="h-3 w-3 rounded-full bg-slate-600 ring-4 ring-[hsl(var(--background))]" />
+                    )}
                   </div>
+                </div>
+
+                {/* The Card Column */}
+                <div key={`card-${rem.id}`} className="flex flex-col py-3">
                   <div
                     className={cn(
-                      "glass-card aura-card flex-1 rounded-2xl px-3 py-2.5 transition-shadow",
-                      isPending
-                        ? "border border-[hsl(var(--reminders-accent))]/60 shadow-[0_0_22px_hsl(var(--reminders-accent)/0.45)]"
-                        : "border border-border/60 opacity-50",
+                      "rounded-xl p-4 border border-white/10 backdrop-blur-md transition-all",
+                      rem.status === "done"
+                        ? "opacity-50"
+                        : "bg-gradient-to-r from-[hsl(var(--reminders-accent))/0.1] to-transparent border-l-4 border-l-[hsl(var(--reminders-accent))]",
                     )}
                   >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex flex-col gap-0.5">
-                        <p
-                          className={cn(
-                            "text-xs font-medium",
-                            isPending ? "text-foreground" : "line-through text-muted-foreground",
-                          )}
-                        >
-                          {reminder.title}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-muted-foreground">{reminder.timeLabel}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleComplete(reminder.id)}
-                          disabled={!isPending}
-                          className={cn(
-                            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors",
-                            isPending
-                              ? "border-emerald-400 bg-emerald-500 text-background hover:bg-emerald-400"
-                              : "border-border/60 bg-muted/40 text-muted-foreground cursor-default",
-                          )}
-                        >
-                          <CheckCircle2 className="h-3 w-3" />
-                          {isPending ? "Concluir" : "Concluído"}
-                        </button>
-                      </div>
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-white text-lg font-bold leading-snug">{rem.title}</h3>
+                      {rem.timeLabel && (
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-[hsl(var(--reminders-accent))/0.2] border border-[hsl(var(--reminders-accent))/0.2]">
+                          <span className="text-[hsl(var(--reminders-accent))] text-xs font-bold">{rem.timeLabel}</span>
+                        </div>
+                      )}
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => handleComplete(rem.id)}
+                      className="mt-2 flex items-center justify-center h-8 w-full rounded-lg bg-[hsl(var(--reminders-accent))] text-white shadow-[0_0_10px_rgba(238,43,173,0.5)] hover:scale-105 transition-transform"
+                    >
+                      {rem.status === "pending" ? "Concluir" : "Concluído"}
+                    </button>
                   </div>
-                </motion.div>
-              );
-            })}
+                </div>
+              </>
+            ))}
           </div>
         </div>
       )}

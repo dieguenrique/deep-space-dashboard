@@ -8,14 +8,14 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Deep space light (fallback) */
-    --background: 222 47% 9%;
+    /* Deep space base */
+    --background: 240 24% 6%;
     --foreground: 210 40% 96%;
 
-    --card: 222 47% 13%;
+    --card: 240 24% 10%;
     --card-foreground: 210 40% 96%;
 
-    --popover: 222 47% 13%;
+    --popover: 240 24% 10%;
     --popover-foreground: 210 40% 96%;
 
     --primary: 222 88% 60%; /* electric blue */
@@ -40,7 +40,7 @@ All colors MUST be HSL.
     --radius: 0.9rem;
 
     /* Sidebar */
-    --sidebar-background: 222 47% 8%;
+    --sidebar-background: 240 24% 5%;
     --sidebar-foreground: 210 40% 96%;
     --sidebar-primary: 222 88% 60%;
     --sidebar-primary-foreground: 210 40% 98%;
@@ -52,20 +52,20 @@ All colors MUST be HSL.
     /* Thematic accents */
     --finance-gradient-start: 222 88% 60%;
     --finance-gradient-end: 155 78% 55%;
-    --notes-accent: 43 96% 56%; /* amber */
-    --reminders-accent: 276 84% 70%; /* soft purple-pink */
+    --notes-accent: 40 89% 55%; /* #f4ab25 amber */
+    --reminders-accent: 322 85% 55%; /* #ee2bad neon pink */
 
     --shadow-soft: 222 80% 5%;
   }
 
   .dark {
-    --background: 222 47% 7%;
+    --background: 240 24% 6%;
     --foreground: 210 40% 96%;
 
-    --card: 222 47% 11%;
+    --card: 240 24% 9%;
     --card-foreground: 210 40% 96%;
 
-    --popover: 222 47% 11%;
+    --popover: 240 24% 9%;
     --popover-foreground: 210 40% 96%;
 
     --primary: 222 88% 64%;
@@ -87,7 +87,7 @@ All colors MUST be HSL.
     --input: 222 35% 22%;
     --ring: 222 100% 70%;
 
-    --sidebar-background: 222 47% 6%;
+    --sidebar-background: 240 24% 5%;
     --sidebar-foreground: 210 40% 96%;
     --sidebar-primary: 222 88% 64%;
     --sidebar-primary-foreground: 210 40% 6%;
