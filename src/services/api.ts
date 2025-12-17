@@ -51,36 +51,35 @@ export async function fetchTransactions(startDate: Date, endDate: Date): Promise
   if (error) throw error;
 
   return (data ?? []).map((row: any) => {
-    const rawValue = Number(row.valor ?? 0);
-    const rawType = (row.tipo || "").toLowerCase().trim();
-    const rawCategory = (row.categoria || "").toLowerCase().trim();
+    // 1. Clean the strings for comparison
+    const rawDesc = String(row.descricao || "").toLowerCase();
+    const rawCat = String(row.categoria || "").toLowerCase();
+    const rawType = String(row.tipo || "").toLowerCase();
 
-    const expenseKeywords = ["gasto", "saída", "saida", "despesa", "débito", "debito"];
-    const expenseCategories = [
-      "moradia",
-      "transporte",
-      "alimentação",
-      "alimentacao",
-      "lazer",
-      "saúde",
-      "saude",
-      "outros",
-      "serviços financeiros",
-      "servicos financeiros",
-    ];
+    // 2. DEFINE WHAT IS INCOME (The Exceptions)
+    // If it mentions 'receita', 'salário', 'investimento' or 'entrada', it is Income.
+    const isIncome =
+      rawType.includes("receita") ||
+      rawType.includes("entrada") ||
+      rawCat.includes("receita") ||
+      rawCat.includes("investimento") ||
+      rawDesc.includes("salário") ||
+      rawDesc.includes("freelancer");
 
-    const isExpense =
-      expenseKeywords.some((k) => rawType.includes(k)) ||
-      expenseCategories.some((c) => rawCategory.includes(c));
+    // 3. EVERYTHING ELSE IS AN EXPENSE
+    const isExpense = !isIncome;
 
+    // 4. Force the Sign
+    const rawValue = Number(row.valor);
+    // Always make it positive first using Math.abs, then apply sign
     const finalAmount = Math.abs(rawValue) * (isExpense ? -1 : 1);
 
     return {
       id: row.id,
-      date: toDateKey(row.data_hora),
-      title: row.descricao ?? "",
-      category: row.categoria ?? "Outros",
-      amount: finalAmount,
+      date: row.data_hora ? new Date(row.data_hora).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+      title: row.descricao || "Sem título",
+      category: row.categoria || "Outros",
+      amount: finalAmount, // Now Expenses are GUARANTEED to be negative
       responsavel: row.responsavel ?? null,
     } satisfies TransactionRecord;
   });
