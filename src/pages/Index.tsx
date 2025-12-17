@@ -1006,79 +1006,19 @@ const CalendarTab = ({ selectedDay, onSelectDay, privacyOn, reminders }: Calenda
                     </div>
 
                     <div className="space-y-1.5">
-                      {/* Financial items */}
-                      {day.transactions.map((tx) => {
-                        const isNegative = tx.amount < 0;
-                        const Icon = getCategoryIcon(tx.category);
-
-                        return (
-                          <div
-                            key={`tx-${tx.id}`}
-                            className="flex items-center justify-between gap-2 rounded-2xl border border-border/60 bg-card/70 px-3 py-2 text-xs backdrop-blur-md"
-                          >
-                            <div className="flex items-center gap-2">
-                              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-muted/60">
-                                <Icon className="h-3.5 w-3.5" />
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="font-medium leading-tight">{tx.title}</span>
-                                <span className="text-[10px] text-muted-foreground">{tx.category}</span>
-                              </div>
-                            </div>
-                            <span
-                              className={cn(
-                                "text-[11px] font-semibold",
-                                isNegative ? "text-rose-400" : "text-emerald-400",
-                              )}
-                            >
-                              {privacyOn
-                                ? "•••••"
-                                : `${isNegative ? "-" : "+"} ${currencyFormatter.format(Math.abs(tx.amount))}`}
-                            </span>
-                          </div>
-                        );
-                      })}
-
-                      {/* Reminders */}
-                      {day.reminders.map((rem) => (
-                        <div
-                          key={`rem-${rem.id}`}
-                          className="flex items-center justify-between gap-2 py-1.5 text-xs"
-                        >
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              className={cn(
-                                "flex h-4 w-4 items-center justify-center rounded-full border text-[9px]",
-                                rem.status === "pending"
-                                  ? "border-[hsl(var(--reminders-accent))] text-[hsl(var(--reminders-accent))]"
-                                  : "border-muted text-muted-foreground bg-muted/30",
-                              )}
-                            >
-                              {rem.status === "pending" ? "" : "✓"}
-                            </button>
-                            <div className="flex flex-col">
-                              <span className="text-[10px] text-muted-foreground">{rem.time}</span>
-                              <span className="font-medium leading-tight">{rem.title}</span>
-                            </div>
-                          </div>
-                          <span className="text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--reminders-accent))]">
-                            Lembrete
-                          </span>
-                        </div>
+                      {/* Financial items: Slim rows */}
+                      {day.transactions.map((tx) => (
+                        <TimelineTransactionRow key={`tx-${tx.id}`} tx={tx} privacyOn={privacyOn} />
                       ))}
 
-                      {/* Notes snippets */}
+                      {/* Reminders: Task-style items */}
+                      {day.reminders.map((rem) => (
+                        <TimelineReminderItem key={`rem-${rem.id}`} rem={rem} />
+                      ))}
+
+                      {/* Notes: Snippet cards */}
                       {day.notes.map((note) => (
-                        <div
-                          key={`note-${note.id}`}
-                          className="rounded-2xl border-l-4 border-amber-400/80 bg-amber-400/10 px-3 py-2 text-xs shadow-sm"
-                        >
-                          <p className="text-[11px] font-semibold leading-tight">{note.title}</p>
-                          <p className="mt-0.5 line-clamp-1 text-[11px] text-amber-100/80">
-                            {note.body}
-                          </p>
-                        </div>
+                        <TimelineNoteCard key={`note-${note.id}`} note={note} />
                       ))}
                     </div>
                   </div>
@@ -1089,6 +1029,89 @@ const CalendarTab = ({ selectedDay, onSelectDay, privacyOn, reminders }: Calenda
         </div>
       </div>
     </section>
+  );
+};
+
+interface TimelineTransactionRowProps {
+  tx: (typeof calendarTransactions)[number];
+  privacyOn: boolean;
+}
+
+const TimelineTransactionRow = ({ tx, privacyOn }: TimelineTransactionRowProps) => {
+  const isNegative = tx.amount < 0;
+  const Icon = getCategoryIcon(tx.category);
+
+  return (
+    <div className="flex items-center justify-between gap-2 border-b border-border/40 py-2 text-xs last:border-b-0">
+      <div className="flex items-center gap-2">
+        <div
+          className={cn(
+            "flex h-7 w-7 items-center justify-center rounded-full border border-border/60 bg-background/40",
+            isNegative ? "text-rose-400" : "text-emerald-400",
+          )}
+        >
+          <Icon className="h-3.5 w-3.5" />
+        </div>
+        <div className="flex flex-col">
+          <span className="font-medium leading-tight text-foreground">{tx.title}</span>
+          <span className="text-[10px] text-muted-foreground">{tx.category}</span>
+        </div>
+      </div>
+      <span
+        className={cn(
+          "text-[11px] font-semibold",
+          isNegative ? "text-rose-400" : "text-emerald-400",
+        )}
+      >
+        {privacyOn ? "•••••" : `${isNegative ? "-" : "+"} ${currencyFormatter.format(Math.abs(tx.amount))}`}
+      </span>
+    </div>
+  );
+};
+
+interface TimelineReminderItemProps {
+  rem: (typeof mockReminders)[number];
+}
+
+const TimelineReminderItem = ({ rem }: TimelineReminderItemProps) => {
+  return (
+    <div className="flex items-center justify-between gap-2 py-1.5 text-xs">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className={cn(
+            "flex h-5 w-5 items-center justify-center rounded-full border-2 text-[9px]",
+            rem.status === "pending"
+              ? "border-[hsl(var(--reminders-accent))] text-[hsl(var(--reminders-accent))]"
+              : "border-muted text-muted-foreground bg-muted/30",
+          )}
+        >
+          {rem.status === "pending" ? "" : "✓"}
+        </button>
+        <div className="flex flex-col gap-0.5">
+          <span className="inline-flex w-fit items-center rounded-full bg-[hsl(var(--reminders-accent))]/15 px-2 py-0.5 text-[10px] text-[hsl(var(--reminders-accent))]">
+            {rem.time}
+          </span>
+          <span className="text-[11px] font-medium leading-tight text-foreground">{rem.title}</span>
+        </div>
+      </div>
+      <span className="text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--reminders-accent))]">
+        Lembrete
+      </span>
+    </div>
+  );
+};
+
+interface TimelineNoteCardProps {
+  note: (typeof calendarNotes)[number];
+}
+
+const TimelineNoteCard = ({ note }: TimelineNoteCardProps) => {
+  return (
+    <div className="mt-1.5 rounded-2xl border-l-2 border-amber-400/90 bg-amber-400/10 px-3 py-2.5 text-xs shadow-sm">
+      <p className="text-[11px] font-semibold leading-tight text-foreground">{note.title}</p>
+      <p className="mt-0.5 line-clamp-2 text-[11px] text-amber-100/80">{note.body}</p>
+    </div>
   );
 };
 
