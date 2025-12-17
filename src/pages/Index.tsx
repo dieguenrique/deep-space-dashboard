@@ -22,9 +22,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { MOCK_USERS, type DashboardUser } from "@/lib/supabaseClient";
 import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import { fetchTransactions, fetchReminders, fetchNotes, type TransactionRecord, type ReminderRecord, type NoteRecord } from "@/services/api";
-
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchTransactions, fetchReminders, fetchNotes, completeReminder, type TransactionRecord, type ReminderRecord, type NoteRecord } from "@/services/api";
 const financeEvolution = [
   { month: "Jan", value: 1200 },
   { month: "Fev", value: 1500 },
@@ -217,17 +216,18 @@ const Index = () => {
   const [notesQuery, setNotesQuery] = useState("");
   const [focusedNoteId, setFocusedNoteId] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState<Date | undefined>(new Date());
+  const [viewDate, setViewDate] = useState<Date>(new Date());
 
   const currentUserId = selectedUser?.id ?? null;
+  const queryClient = useQueryClient();
 
   const { data: transactions = [], isLoading: isLoadingTransactions } = useQuery<TransactionRecord[]>({
-    queryKey: ["transactions"],
+    queryKey: ["transactions", viewDate.getFullYear(), viewDate.getMonth()],
     queryFn: () => {
-      const today = new Date();
-      const start = new Date(today);
-      start.setDate(start.getDate() - 7);
-      const end = new Date(today);
-      end.setDate(end.getDate() + 7);
+      const year = viewDate.getFullYear();
+      const month = viewDate.getMonth(); // 0-indexed
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
       return fetchTransactions(start, end);
     },
     enabled: !!currentUserId,
@@ -244,20 +244,53 @@ const Index = () => {
     queryFn: () => fetchNotes(currentUserId!),
     enabled: !!currentUserId,
   });
-
   const filteredNotes = useMemo(() => {
     if (!currentUserId) return [] as NoteRecord[];
+    const q = notesQuery.toLowerCase().trim();
     return notes.filter((note) => {
-      if (!notesQuery.trim()) return true;
-      const q = notesQuery.toLowerCase();
+      if (!q) return true;
       return note.title.toLowerCase().includes(q) || note.body.toLowerCase().includes(q);
     });
   }, [notesQuery, notes, currentUserId]);
 
   const filteredReminders = useMemo(() => {
     if (!currentUserId) return [] as ReminderRecord[];
-    return reminders;
-  }, [reminders, currentUserId]);
+    const q = notesQuery.toLowerCase().trim();
+    return reminders.filter((reminder) => {
+      if (!q) return true;
+      return reminder.title.toLowerCase().includes(q);
+    });
+  }, [reminders, notesQuery, currentUserId]);
+
+  const filteredTransactions = useMemo(() => {
+    if (!currentUserId) return [] as TransactionRecord[];
+    const q = notesQuery.toLowerCase().trim();
+    return transactions.filter((tx) => {
+      if (!q) return true;
+      return tx.title.toLowerCase().includes(q) || tx.category.toLowerCase().includes(q);
+    });
+  }, [transactions, notesQuery, currentUserId]);
+
+  const completeReminderMutation = useMutation({
+    mutationFn: (id: number) => completeReminder(id),
+  });
+
+  const handleCompleteReminder = (id: number) => {
+    if (!currentUserId) return;
+    const key = ["reminders", currentUserId] as const;
+
+    queryClient.setQueryData<ReminderRecord[]>(key, (old) =>
+      (old ?? []).map((r) => (r.id === id ? { ...r, status: "done" as const } : r)),
+    );
+
+    completeReminderMutation.mutate(id, {
+      onError: () => {
+        queryClient.setQueryData<ReminderRecord[]>(key, (old) =>
+          (old ?? []).map((r) => (r.id === id ? { ...r, status: "pending" as const } : r)),
+        );
+      },
+    });
+  };
 
   const focusNote = filteredNotes.find((n) => n.id === focusedNoteId) ?? null;
 
@@ -307,7 +340,7 @@ const Index = () => {
               transition={{ duration: 0.25, ease: "easeOut" }}
               className="space-y-4"
             >
-              {activeTab === "finance" && <FinanceTab privacyOn={privacyOn} />}
+              {activeTab === "finance" && <FinanceTab privacyOn={privacyOn} transactions={filteredTransactions} />}
               {activeTab === "notes" && (
                 <NotesTab
                   notes={filteredNotes}
@@ -316,13 +349,20 @@ const Index = () => {
                   onOpenNote={setFocusedNoteId}
                 />
               )}
-              {activeTab === "reminders" && <RemindersTab reminders={filteredReminders} />}
+              {activeTab === "reminders" && (
+                <RemindersTab reminders={filteredReminders} onCompleteReminder={handleCompleteReminder} />
+              )}
               {activeTab === "calendar" && (
                 <CalendarTab
                   selectedDay={selectedDay}
                   onSelectDay={setSelectedDay}
                   privacyOn={privacyOn}
+                  viewDate={viewDate}
+                  onChangeViewDate={setViewDate}
+                  transactions={filteredTransactions}
                   reminders={filteredReminders}
+                  notes={filteredNotes}
+                  onCompleteReminder={handleCompleteReminder}
                 />
               )}
             </motion.div>
@@ -441,7 +481,7 @@ const LandingLogin = ({ onSelectUser }: { onSelectUser: (user: DashboardUser) =>
   );
 };
 
-const FinanceTab = ({ privacyOn }: { privacyOn: boolean }) => {
+const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transactions: TransactionRecord[] }) => {
   const [evolutionFilter, setEvolutionFilter] = useState<"6m" | "month">("6m");
   const evolutionData = evolutionFilter === "6m" ? financeEvolution : financeEvolutionThisMonth;
   const evolutionXKey = evolutionFilter === "6m" ? "month" : "day";
@@ -626,9 +666,13 @@ const FinanceTab = ({ privacyOn }: { privacyOn: boolean }) => {
           <button className="text-[11px] text-muted-foreground hover:text-foreground">Ver tudo</button>
         </div>
         <div className="space-y-2.5">
-          {recentTransactions.map((tx) => {
+          {transactions.map((tx) => {
             const Icon = getCategoryIcon(tx.category);
             const isNegative = tx.amount < 0;
+            const dateLabel = new Date(tx.date).toLocaleDateString("pt-PT", {
+              day: "2-digit",
+              month: "2-digit",
+            });
             return (
               <motion.div
                 key={tx.id}
@@ -643,15 +687,16 @@ const FinanceTab = ({ privacyOn }: { privacyOn: boolean }) => {
                   </div>
                   <div>
                     <p className="text-xs font-medium">{tx.title}</p>
-                    <p className="text-[11px] text-muted-foreground">{tx.subtitle}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {dateLabel} · Categoria: {tx.category}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right text-xs">
                   <p className={cn("font-medium", isNegative ? "text-rose-400" : "text-emerald-400")}>
-                    {privacyOn ? "•••••" : `${isNegative ? "-" : "+"} ${currencyFormatter.format(Math.abs(tx.amount))}`}
-                  </p>
-                  <p className="text-[11px] text-emerald-400/80">
-                    {privacyOn ? "•••••" : `+ ${currencyFormatter.format(tx.cashback)}`}
+                    {privacyOn
+                      ? "•••••"
+                      : `${isNegative ? "-" : "+"} ${currencyFormatter.format(Math.abs(tx.amount))}`}
                   </p>
                 </div>
               </motion.div>
@@ -726,13 +771,12 @@ const NotesTab = ({ notes, query, onQueryChange, onOpenNote }: NotesTabProps) =>
   );
 };
 
-const RemindersTab = ({ reminders }: { reminders: ReminderRecord[] }) => {
-  const [items, setItems] = useState(reminders);
+const RemindersTab = ({ reminders, onCompleteReminder }: { reminders: ReminderRecord[]; onCompleteReminder: (id: number) => void }) => {
+  const items = reminders;
 
   const handleComplete = (id: number) => {
-    setItems((prev) => prev.map((r) => (r.id === id ? { ...r, status: "done" as const } : r)));
+    onCompleteReminder(id);
   };
-
   return (
     <section className="space-y-3">
       <div className="flex items-center gap-2">
@@ -823,12 +867,25 @@ interface CalendarTabProps {
   selectedDay: Date | undefined;
   onSelectDay: (date: Date | undefined) => void;
   privacyOn: boolean;
+  viewDate: Date;
+  onChangeViewDate: (date: Date) => void;
   transactions: TransactionRecord[];
   reminders: ReminderRecord[];
   notes: NoteRecord[];
+  onCompleteReminder: (id: number) => void;
 }
 
-const CalendarTab = ({ selectedDay, onSelectDay, privacyOn, transactions, reminders, notes }: CalendarTabProps) => {
+const CalendarTab = ({
+  selectedDay,
+  onSelectDay,
+  privacyOn,
+  viewDate,
+  onChangeViewDate,
+  transactions,
+  reminders,
+  notes,
+  onCompleteReminder,
+}: CalendarTabProps) => {
   const effectiveDay = selectedDay ?? new Date();
   const selectedKey = getDateKey(effectiveDay);
 
@@ -843,7 +900,7 @@ const CalendarTab = ({ selectedDay, onSelectDay, privacyOn, transactions, remind
       }
     >();
 
-    calendarTransactions.forEach((tx) => {
+    transactions.forEach((tx) => {
       let entry = map.get(tx.date);
       if (!entry) {
         entry = { date: new Date(tx.date), transactions: [], reminders: [], notes: [] };
@@ -861,7 +918,7 @@ const CalendarTab = ({ selectedDay, onSelectDay, privacyOn, transactions, remind
       entry.reminders.push(reminder);
     });
 
-    calendarNotes.forEach((note) => {
+    notes.forEach((note) => {
       let entry = map.get(note.date);
       if (!entry) {
         entry = { date: new Date(note.date), transactions: [], reminders: [], notes: [] };
@@ -874,8 +931,8 @@ const CalendarTab = ({ selectedDay, onSelectDay, privacyOn, transactions, remind
       .map(([dateKey, value]) => ({ key: dateKey, ...value }))
       .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-    return daysArray.slice(0, 14);
-  }, [reminders]);
+    return daysArray;
+  }, [transactions, reminders, notes]);
 
   const formatDayLabel = (date: Date) =>
     date.toLocaleDateString("pt-PT", {
@@ -906,6 +963,33 @@ const CalendarTab = ({ selectedDay, onSelectDay, privacyOn, transactions, remind
         <div className="flex items-center gap-2">
           <span className="tag-pill bg-[hsl(var(--finance-gradient-start))]/15 text-xs">Calendário</span>
           <span className="text-[11px] text-muted-foreground">Linha do tempo conectada</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <button
+            type="button"
+            onClick={() => {
+              const prev = new Date(viewDate);
+              prev.setMonth(prev.getMonth() - 1);
+              onChangeViewDate(prev);
+            }}
+            className="rounded-full border border-border/60 px-2 py-0.5 hover:bg-card/70"
+          >
+            
+          </button>
+          <span className="min-w-[96px] text-center">
+            {viewDate.toLocaleDateString("pt-PT", { month: "long", year: "numeric" })}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              const next = new Date(viewDate);
+              next.setMonth(next.getMonth() + 1);
+              onChangeViewDate(next);
+            }}
+            className="rounded-full border border-border/60 px-2 py-0.5 hover:bg-card/70"
+          >
+            
+          </button>
         </div>
       </div>
 
@@ -1001,7 +1085,7 @@ const CalendarTab = ({ selectedDay, onSelectDay, privacyOn, transactions, remind
 
                       {/* Reminders: Task-style items */}
                       {day.reminders.map((rem) => (
-                        <TimelineReminderItem key={`rem-${rem.id}`} rem={rem} />
+                        <TimelineReminderItem key={`rem-${rem.id}`} rem={rem} onComplete={onCompleteReminder} />
                       ))}
 
                       {/* Notes: Snippet cards */}
@@ -1059,26 +1143,29 @@ const TimelineTransactionRow = ({ tx, privacyOn }: TimelineTransactionRowProps) 
 
 interface TimelineReminderItemProps {
   rem: ReminderRecord;
+  onComplete: (id: number) => void;
 }
 
-const TimelineReminderItem = ({ rem }: TimelineReminderItemProps) => {
+const TimelineReminderItem = ({ rem, onComplete }: TimelineReminderItemProps) => {
+  const isPending = rem.status === "pending";
   return (
     <div className="flex items-center justify-between gap-2 py-1.5 text-xs">
       <div className="flex items-center gap-2">
         <button
           type="button"
+          onClick={() => isPending && onComplete(rem.id)}
           className={cn(
             "flex h-5 w-5 items-center justify-center rounded-full border-2 text-[9px]",
-            rem.status === "pending"
+            isPending
               ? "border-[hsl(var(--reminders-accent))] text-[hsl(var(--reminders-accent))]"
               : "border-muted text-muted-foreground bg-muted/30",
           )}
         >
-          {rem.status === "pending" ? "" : "✓"}
+          {isPending ? "" : "✓"}
         </button>
         <div className="flex flex-col gap-0.5">
           <span className="inline-flex w-fit items-center rounded-full bg-[hsl(var(--reminders-accent))]/15 px-2 py-0.5 text-[10px] text-[hsl(var(--reminders-accent))]">
-            {rem.time}
+            {rem.timeLabel}
           </span>
           <span className="text-[11px] font-medium leading-tight text-foreground">{rem.title}</span>
         </div>
