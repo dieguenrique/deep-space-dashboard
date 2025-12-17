@@ -51,17 +51,36 @@ export async function fetchTransactions(startDate: Date, endDate: Date): Promise
   if (error) throw error;
 
   return (data ?? []).map((row: any) => {
-    const rawValue = typeof row.valor === "number" ? row.valor : Number(row.valor ?? 0);
-    const tipo = (row.tipo ?? "").toString().toLowerCase();
-    const isExpense = tipo.includes("gasto") || tipo.includes("despesa") || tipo.includes("saída") || tipo.includes("saida");
-    const multiplier = isExpense ? -1 : 1;
+    const rawValue = Number(row.valor ?? 0);
+    const rawType = (row.tipo || "").toLowerCase().trim();
+    const rawCategory = (row.categoria || "").toLowerCase().trim();
+
+    const expenseKeywords = ["gasto", "saída", "saida", "despesa", "débito", "debito"];
+    const expenseCategories = [
+      "moradia",
+      "transporte",
+      "alimentação",
+      "alimentacao",
+      "lazer",
+      "saúde",
+      "saude",
+      "outros",
+      "serviços financeiros",
+      "servicos financeiros",
+    ];
+
+    const isExpense =
+      expenseKeywords.some((k) => rawType.includes(k)) ||
+      expenseCategories.some((c) => rawCategory.includes(c));
+
+    const finalAmount = Math.abs(rawValue) * (isExpense ? -1 : 1);
 
     return {
       id: row.id,
       date: toDateKey(row.data_hora),
       title: row.descricao ?? "",
       category: row.categoria ?? "Outros",
-      amount: rawValue * multiplier,
+      amount: finalAmount,
       responsavel: row.responsavel ?? null,
     } satisfies TransactionRecord;
   });
