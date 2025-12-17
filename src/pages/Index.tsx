@@ -487,6 +487,11 @@ const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transacti
   const evolutionData = evolutionFilter === "6m" ? financeEvolution : financeEvolutionThisMonth;
   const evolutionXKey = evolutionFilter === "6m" ? "month" : "day";
 
+  // Aggregate metrics based on the mapped transactions (expenses already negative)
+  const totalBalance = transactions.reduce((sum, tx) => sum + tx.amount, 0);
+  const totalIncome = transactions.filter((tx) => tx.amount > 0).reduce((sum, tx) => sum + tx.amount, 0);
+  const totalExpense = transactions.filter((tx) => tx.amount < 0).reduce((sum, tx) => sum + tx.amount, 0);
+
   const formatCurrency = (value: number) => (privacyOn ? "•••••" : currencyFormatter.format(value));
 
   return (
@@ -513,7 +518,7 @@ const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transacti
               <p className="text-xs text-muted-foreground">Saldo atual</p>
               <p className="mt-1 text-2xl font-semibold tracking-tight">
                 <span className="bg-gradient-to-r from-[hsl(var(--finance-gradient-start))] to-[hsl(var(--finance-gradient-end))] bg-clip-text text-transparent">
-                  {formatCurrency(24520)}
+                  {formatCurrency(totalBalance)}
                 </span>
               </p>
             </div>
@@ -584,6 +589,58 @@ const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transacti
             </p>
           </div>
         </motion.div>
+      </div>
+
+      {/* Análise por Pessoa */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {[
+          { id: "351932966990", name: "Ana Luiza", initial: "AN", badgeClass: "bg-sky-500/15 text-sky-300" },
+          { id: "351929426244", name: "Diego", initial: "DI", badgeClass: "bg-indigo-500/15 text-indigo-300" },
+        ].map((user) => {
+          const userTxs = transactions.filter((t) => t.responsavel === user.id || (t as any).userId === user.id);
+          const income = userTxs.filter((t) => t.amount > 0).reduce((acc, t) => acc + t.amount, 0);
+          const expense = userTxs.filter((t) => t.amount < 0).reduce((acc, t) => acc + t.amount, 0);
+          const balance = income + expense;
+
+          return (
+            <motion.div
+              key={user.id}
+              className="glass-card aura-card rounded-2xl p-5"
+              variants={cardHover}
+              initial="rest"
+              whileHover="hover"
+            >
+              <div className="mb-4 flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={cn("flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold", user.badgeClass)}>
+                    {user.initial}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">{user.name}</h3>
+                    <p className={cn("text-xs font-mono", balance >= 0 ? "text-emerald-400" : "text-rose-400")}
+                    >
+                      {privacyOn ? "•••••" : `${balance >= 0 ? "+" : ""}${currencyFormatter.format(balance)}`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-3">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-400">Entrou</span>
+                  <p className="mt-1 text-sm font-bold text-emerald-300">
+                    {privacyOn ? "•••••" : currencyFormatter.format(income)}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-rose-500/10 bg-rose-500/5 p-3">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-400">Saiu</span>
+                  <p className="mt-1 text-sm font-bold text-rose-300">
+                    {privacyOn ? "•••••" : currencyFormatter.format(Math.abs(expense))}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
 
       <div className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
