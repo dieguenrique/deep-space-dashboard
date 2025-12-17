@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
-import { useState, useMemo } from "react";
-import { Eye, EyeOff, CreditCard, ArrowDownRight, ArrowUpRight, PiggyBank, PenSquare, BellRing, Search } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Eye, EyeOff, CreditCard, ArrowDownRight, ArrowUpRight, PiggyBank, PenSquare, BellRing, Search, Utensils, Car, Home, PartyPopper, CheckCircle2 } from "lucide-react";
 import { MOCK_USERS, type DashboardUser } from "@/lib/supabaseClient";
 import { Area, AreaChart, CartesianGrid, Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -36,6 +36,71 @@ const mockReminders = [
   { id: 2, userId: "351932966990", title: "Rever orçamento do mês", time: "Amanhã · 09:00", status: "pending" as const },
   { id: 3, userId: "351929426244", title: "Assinar relatório de investimentos", time: "Concluído ontem", status: "done" as const },
 ];
+
+const currencyFormatter = new Intl.NumberFormat("pt-PT", {
+  style: "currency",
+  currency: "EUR",
+});
+
+const financeEvolutionThisMonth = [
+  { day: "1", value: 400 },
+  { day: "5", value: 650 },
+  { day: "10", value: 980 },
+  { day: "15", value: 1200 },
+  { day: "20", value: 1420 },
+  { day: "25", value: 1600 },
+  { day: "30", value: 1750 },
+];
+
+const recentTransactions = [
+  {
+    id: 1,
+    title: "Restaurante · almoço",
+    subtitle: "Hoje · Cartão crédito · Categoria: Alimentação",
+    amount: -74.9,
+    cashback: 1.8,
+    category: "Alimentação",
+  },
+  {
+    id: 2,
+    title: "Uber · reunião cliente",
+    subtitle: "Ontem · Cartão crédito · Categoria: Transporte",
+    amount: -32.5,
+    cashback: 0.7,
+    category: "Transporte",
+  },
+  {
+    id: 3,
+    title: "Aluguel apartamento",
+    subtitle: "01/10 · Débito automático · Categoria: Casa",
+    amount: -950,
+    cashback: 5,
+    category: "Casa",
+  },
+  {
+    id: 4,
+    title: "Netflix & Spotify",
+    subtitle: "Esta semana · Cartão crédito · Categoria: Lazer",
+    amount: -29.9,
+    cashback: 0.5,
+    category: "Lazer",
+  },
+];
+
+const getCategoryIcon = (category: string) => {
+  switch (category) {
+    case "Alimentação":
+      return Utensils;
+    case "Transporte":
+      return Car;
+    case "Casa":
+      return Home;
+    case "Lazer":
+      return PartyPopper;
+    default:
+      return CreditCard;
+  }
+};
 
 const tabVariants = {
   initial: { opacity: 0, y: 8 },
@@ -255,8 +320,12 @@ const LandingLogin = ({ onSelectUser }: { onSelectUser: (user: DashboardUser) =>
 };
 
 const FinanceTab = ({ privacyOn }: { privacyOn: boolean }) => {
-  const formatCurrency = (value: number) =>
-    privacyOn ? "•••••" : value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const [evolutionFilter, setEvolutionFilter] = useState<"6m" | "month">("6m");
+
+  const formatCurrency = (value: number) => (privacyOn ? "•••••" : currencyFormatter.format(value));
+
+  const evolutionData = evolutionFilter === "6m" ? financeEvolution : financeEvolutionThisMonth;
+  const evolutionXKey = evolutionFilter === "6m" ? "month" : "day";
 
   return (
     <section className="space-y-4">
@@ -302,10 +371,10 @@ const FinanceTab = ({ privacyOn }: { privacyOn: boolean }) => {
               <p className="text-xs text-muted-foreground">Receitas vs despesas</p>
               <div className="flex items-baseline gap-2 text-xs">
                 <span className="inline-flex items-center gap-1 text-emerald-400/90">
-                  <ArrowDownRight className="h-3 w-3" /> R$ 8.200
+                  <ArrowDownRight className="h-3 w-3" /> {formatCurrency(8200)}
                 </span>
                 <span className="inline-flex items-center gap-1 text-rose-400/90">
-                  <ArrowUpRight className="h-3 w-3" /> R$ 5.600
+                  <ArrowUpRight className="h-3 w-3" /> {formatCurrency(5600)}
                 </span>
               </div>
               <div className="mt-2 space-y-1">
@@ -341,11 +410,32 @@ const FinanceTab = ({ privacyOn }: { privacyOn: boolean }) => {
         <motion.div className="glass-card rounded-2xl p-4" variants={cardHover} initial="rest" whileHover="hover">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Evolução</p>
-            <span className="text-[11px] text-muted-foreground">Últimos 6 meses</span>
+            <div className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-card/70 p-1 text-[10px]">
+              <button
+                type="button"
+                onClick={() => setEvolutionFilter("6m")}
+                className={cn(
+                  "rounded-full px-2 py-0.5 transition-colors",
+                  evolutionFilter === "6m" ? "bg-primary/20 text-primary" : "text-muted-foreground"
+                )}
+              >
+                6M
+              </button>
+              <button
+                type="button"
+                onClick={() => setEvolutionFilter("month")}
+                className={cn(
+                  "rounded-full px-2 py-0.5 transition-colors",
+                  evolutionFilter === "month" ? "bg-primary/20 text-primary" : "text-muted-foreground"
+                )}
+              >
+                Este mês
+              </button>
+            </div>
           </div>
           <div className="h-40">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={financeEvolution} margin={{ left: -20, right: 0, top: 5, bottom: 0 }}>
+              <AreaChart data={evolutionData} margin={{ left: -20, right: 0, top: 5, bottom: 0 }}>
                 <defs>
                   <linearGradient id="financeGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="hsl(222 88% 64%)" stopOpacity={0.9} />
@@ -353,7 +443,7 @@ const FinanceTab = ({ privacyOn }: { privacyOn: boolean }) => {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(222 30% 18%)" vertical={false} />
-                <XAxis dataKey="month" stroke="hsl(214 20% 70%)" tickLine={false} axisLine={false} fontSize={10} />
+                <XAxis dataKey={evolutionXKey} stroke="hsl(214 20% 70%)" tickLine={false} axisLine={false} fontSize={10} />
                 <YAxis stroke="hsl(214 20% 70%)" tickLine={false} axisLine={false} fontSize={10} width={40} />
                 <RechartsTooltip
                   contentStyle={{
@@ -405,29 +495,37 @@ const FinanceTab = ({ privacyOn }: { privacyOn: boolean }) => {
           <button className="text-[11px] text-muted-foreground hover:text-foreground">Ver tudo</button>
         </div>
         <div className="space-y-2.5">
-          {[1, 2, 3, 4].map((idx) => (
-            <motion.div
-              key={idx}
-              className="glass-card flex items-center justify-between rounded-2xl px-3 py-2.5"
-              variants={cardHover}
-              initial="rest"
-              whileHover="hover"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400">
-                  <span className="text-xs font-medium">🍽</span>
+          {recentTransactions.map((tx) => {
+            const Icon = getCategoryIcon(tx.category);
+            const isNegative = tx.amount < 0;
+            return (
+              <motion.div
+                key={tx.id}
+                className="glass-card flex items-center justify-between rounded-2xl px-3 py-2.5"
+                variants={cardHover}
+                initial="rest"
+                whileHover="hover"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium">{tx.title}</p>
+                    <p className="text-[11px] text-muted-foreground">{tx.subtitle}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-medium">Restaurante · almoço</p>
-                  <p className="text-[11px] text-muted-foreground">Hoje · Cartão crédito · Categoria: Alimentação</p>
+                <div className="text-right text-xs">
+                  <p className={cn("font-medium", isNegative ? "text-rose-400" : "text-emerald-400")}>
+                    {privacyOn ? "•••••" : `${isNegative ? "-" : "+"} ${currencyFormatter.format(Math.abs(tx.amount))}`}
+                  </p>
+                  <p className="text-[11px] text-emerald-400/80">
+                    {privacyOn ? "•••••" : `+ ${currencyFormatter.format(tx.cashback)}`}
+                  </p>
                 </div>
-              </div>
-              <div className="text-right text-xs">
-                <p className="font-medium text-rose-400">-R$ 74,90</p>
-                <p className="text-[11px] text-emerald-400/80">Cashback +R$ 1,80</p>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
       </section>
     </section>
@@ -502,6 +600,16 @@ const RemindersTab = ({
 }: {
   reminders: typeof mockReminders;
 }) => {
+  const [items, setItems] = useState(reminders);
+
+  useEffect(() => {
+    setItems(reminders);
+  }, [reminders]);
+
+  const handleComplete = (id: number) => {
+    setItems((prev) => prev.map((r) => (r.id === id ? { ...r, status: "done" as const } : r)));
+  };
+
   return (
     <section className="space-y-3">
       <div className="flex items-center gap-2">
@@ -509,7 +617,7 @@ const RemindersTab = ({
         <span className="text-[11px] text-muted-foreground">Linha do tempo do que importa hoje</span>
       </div>
 
-      {reminders.length === 0 ? (
+      {items.length === 0 ? (
         <div className="glass-card flex flex-col items-center justify-center gap-1 rounded-2xl p-5 text-center">
           <p className="text-xs font-medium">Nenhum lembrete para este usuário.</p>
           <p className="text-[11px] text-muted-foreground">
@@ -520,7 +628,7 @@ const RemindersTab = ({
         <div className="relative pl-3">
           <div className="absolute left-[7px] top-1 bottom-2 w-px bg-gradient-to-b from-[hsl(var(--reminders-accent))] via-border/70 to-transparent" />
           <div className="space-y-3">
-            {reminders.map((reminder, index) => {
+            {items.map((reminder, index) => {
               const isPending = reminder.status === "pending";
               return (
                 <motion.div
@@ -540,34 +648,43 @@ const RemindersTab = ({
                       )}
                     />
                   </div>
-                  <div className="glass-card flex-1 rounded-2xl px-3 py-2.5">
+                  <div
+                    className={cn(
+                      "glass-card flex-1 rounded-2xl px-3 py-2.5 transition-shadow",
+                      isPending
+                        ? "border border-[hsl(var(--reminders-accent))]/60 shadow-[0_0_22px_hsl(var(--reminders-accent)/0.45)]"
+                        : "border border-border/60 opacity-50"
+                    )}
+                  >
                     <div className="flex items-center justify-between gap-3">
-                      <p
-                        className={cn(
-                          "text-xs font-medium",
-                          isPending ? "" : "line-through text-muted-foreground"
-                        )}
-                      >
-                        {reminder.title}
-                      </p>
-                      <button
-                        type="button"
-                        className={cn(
-                          "relative inline-flex h-5 w-9 items-center rounded-full border px-[3px]",
-                          isPending
-                            ? "border-[hsl(var(--reminders-accent))]/60 bg-[hsl(var(--reminders-accent))]/20"
-                            : "border-muted bg-muted/40"
-                        )}
-                      >
-                        <span
+                      <div className="flex flex-col gap-0.5">
+                        <p
                           className={cn(
-                            "inline-block h-3.5 w-3.5 rounded-full bg-background shadow-sm transition-transform",
-                            isPending ? "translate-x-3.5" : "translate-x-0"
+                            "text-xs font-medium",
+                            isPending ? "text-foreground" : "line-through text-muted-foreground"
                           )}
-                        />
-                      </button>
+                        >
+                          {reminder.title}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">{reminder.time}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleComplete(reminder.id)}
+                          disabled={!isPending}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] transition-colors",
+                            isPending
+                              ? "border-[hsl(var(--reminders-accent))]/70 bg-[hsl(var(--reminders-accent))]/20 text-foreground hover:bg-[hsl(var(--reminders-accent))]/30"
+                              : "border-border/60 bg-muted/40 text-muted-foreground cursor-default"
+                          )}
+                        >
+                          <CheckCircle2 className="h-3 w-3" />
+                          {isPending ? "Concluir" : "Concluído"}
+                        </button>
+                      </div>
                     </div>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">{reminder.time}</p>
                   </div>
                 </motion.div>
               );
