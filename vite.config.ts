@@ -20,9 +20,9 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg}"]
       },
       manifest: {
-        name: "Deep Space Personal Finance Dashboard",
-        short_name: "DeepSpace",
-        description: "Deep Space Personal Finance Dashboard PWA",
+        name: "Agente",
+        short_name: "Agente",
+         description: "Deep Space Personal Finance Dashboard PWA",
         start_url: "/",
         scope: "/",
         display: "standalone",
