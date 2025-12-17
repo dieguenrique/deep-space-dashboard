@@ -20,7 +20,6 @@ import {
 import { Area, AreaChart, CartesianGrid, Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Calendar } from "@/components/ui/calendar";
 import { MOCK_USERS, type DashboardUser } from "@/lib/supabaseClient";
 import { cn } from "@/lib/utils";
 
@@ -795,148 +794,178 @@ const CalendarTab = ({ selectedDay, onSelectDay, privacyOn, reminders }: Calenda
   const effectiveDay = selectedDay ?? new Date();
   const selectedKey = getDateKey(effectiveDay);
 
-  const expenseDates = useMemo(
-    () => new Set(calendarTransactions.filter((t) => t.amount < 0).map((t) => t.date)),
-    [],
-  );
+  const groupedDays = useMemo(() => {
+    const map = new Map<string, { date: Date; transactions: typeof calendarTransactions; reminders: typeof reminders }>();
 
-  const incomeDates = useMemo(
-    () => new Set(calendarTransactions.filter((t) => t.amount > 0).map((t) => t.date)),
-    [],
-  );
+    calendarTransactions.forEach((tx) => {
+      let entry = map.get(tx.date);
+      if (!entry) {
+        entry = { date: new Date(tx.date), transactions: [] as any, reminders: [] as any };
+        map.set(tx.date, entry);
+      }
+      (entry.transactions as any).push(tx);
+    });
 
-  const reminderDates = useMemo(() => new Set(reminders.map((r) => r.date)), [reminders]);
+    reminders.forEach((reminder) => {
+      let entry = map.get(reminder.date);
+      if (!entry) {
+        entry = { date: new Date(reminder.date), transactions: [] as any, reminders: [] as any };
+        map.set(reminder.date, entry);
+      }
+      (entry.reminders as any).push(reminder);
+    });
 
-  const dayTransactions = useMemo(
-    () => calendarTransactions.filter((t) => t.date === selectedKey),
-    [selectedKey],
-  );
+    const daysArray = Array.from(map.entries())
+      .map(([dateKey, value]) => ({ key: dateKey, ...value }))
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-  const dayReminders = useMemo(
-    () => reminders.filter((r) => r.date === selectedKey),
-    [reminders, selectedKey],
-  );
+    // limit to 14 days to simulate short-term future view
+    return daysArray.slice(0, 14);
+  }, [reminders]);
 
-  const headerLabel = effectiveDay.toLocaleDateString("pt-PT", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  const weekStripDays = groupedDays.slice(0, 7);
 
-  const DayContent = (props: any) => {
-    const date: Date = props.date;
-    const key = getDateKey(date);
-    const hasExpense = expenseDates.has(key);
-    const hasIncome = incomeDates.has(key);
-    const hasReminder = reminderDates.has(key);
+  const formatDayHeader = (date: Date) =>
+    date.toLocaleDateString("pt-PT", {
+      weekday: "long",
+      day: "2-digit",
+      month: "short",
+    });
 
-    return (
-      <div className="flex flex-col items-center justify-center">
-        <span>{date.getDate()}</span>
-        <div className="mt-0.5 flex gap-0.5">
-          {hasExpense && <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />}
-          {hasIncome && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />}
-          {hasReminder && <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />}
-        </div>
-      </div>
-    );
+  const handleJumpToDay = (key: string, date: Date) => {
+    onSelectDay(date);
+    const el = document.getElementById(`day-${key}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   return (
-    <section className="space-y-3">
-      <div className="flex items-center gap-2">
-        <span className="tag-pill bg-[hsl(var(--finance-gradient-start))]/15 text-xs">Calendário</span>
-        <span className="text-[11px] text-muted-foreground">Visão unificada de finanças e lembretes</span>
-      </div>
-      <div className="grid gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1.1fr)] md:items-start">
-        <div className="glass-card aura-card aura-strong rounded-2xl p-4">
-          <Calendar
-            mode="single"
-            selected={selectedDay}
-            onSelect={onSelectDay}
-            className="p-3 pointer-events-auto"
-            components={{ DayContent }}
-            classNames={{
-              day_selected:
-                "bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] shadow-[0_0_0_1px_hsl(var(--accent)),0_0_28px_hsl(var(--accent)/0.85)]",
-            }}
-          />
+    <section className="space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="tag-pill bg-[hsl(var(--finance-gradient-start))]/15 text-xs">Calendário</span>
+          <span className="text-[11px] text-muted-foreground">Linha do tempo de finanças e lembretes</span>
         </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                Agenda do dia
-              </p>
-              <p className="text-sm font-semibold tracking-tight">{headerLabel}</p>
-            </div>
-            <span className="rounded-full bg-muted/40 px-2 py-0.5 text-[11px] text-muted-foreground">
-              {dayTransactions.length + dayReminders.length} itens
-            </span>
-          </div>
+      </div>
 
-          {dayTransactions.length === 0 && dayReminders.length === 0 ? (
-            <div className="glass-card aura-card rounded-2xl p-3 text-xs text-muted-foreground">
-              Nenhum evento registado para esta data.
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {dayTransactions.length > 0 && (
-                <div className="space-y-1.5">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                    Movimentações
-                  </p>
-                  {dayTransactions.map((tx) => {
-                    const isNegative = tx.amount < 0;
-                    return (
-                      <div
-                        key={tx.id}
-                        className="glass-card aura-card flex items-center justify-between rounded-2xl px-3 py-2"
-                      >
-                        <div>
-                          <p className="text-xs font-medium">{tx.title}</p>
-                          <p className="text-[11px] text-muted-foreground">{tx.category}</p>
-                        </div>
-                        <p
-                          className={cn(
-                            "text-xs font-medium",
-                            isNegative ? "text-rose-400" : "text-emerald-400",
-                          )}
-                        >
-                          {privacyOn
-                            ? "•••••"
-                            : `${isNegative ? "-" : "+"} ${currencyFormatter.format(Math.abs(tx.amount))}`}
-                        </p>
-                      </div>
-                    );
-                  })}
+      {/* Week strip */}
+      <div className="glass-card aura-card rounded-2xl px-3 py-2.5">
+        <div className="flex items-center justify-between gap-1">
+          {weekStripDays.map((day) => {
+            const key = day.key;
+            const isActive = key === selectedKey;
+            const label = day.date.toLocaleDateString("pt-PT", { weekday: "short" });
+            const num = day.date.getDate();
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleJumpToDay(key, day.date)}
+                className={cn(
+                  "flex flex-1 flex-col items-center gap-0.5 rounded-2xl px-1.5 py-1 text-[10px] transition-colors",
+                  isActive ? "text-primary" : "text-muted-foreground",
+                )}
+              >
+                <span className="uppercase tracking-[0.18em]">{label}</span>
+                <span
+                  className={cn(
+                    "flex h-7 w-7 items-center justify-center rounded-full border text-xs",
+                    isActive
+                      ? "border-[hsl(var(--accent))] bg-[hsl(var(--accent))]/20 shadow-[0_0_18px_hsl(var(--accent)/0.7)]"
+                      : "border-border/60 bg-card/60",
+                  )}
+                >
+                  {num}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Vertical timeline */}
+      <div className="glass-card aura-card aura-strong max-h-[520px] overflow-y-auto rounded-2xl p-3 no-scrollbar">
+        {groupedDays.map((day) => {
+          const key = day.key;
+          const isToday = key === getDateKey(new Date());
+          const totalItems = (day.transactions as any).length + (day.reminders as any).length;
+
+          return (
+            <section key={key} id={`day-${key}`} className="relative pb-4">
+              <div className="sticky top-0 z-10 -mx-3 mb-2 px-3">
+                <div className="glass-card flex items-center justify-between rounded-2xl bg-background/70 px-3 py-2 text-xs">
+                  <div>
+                    <p className="font-semibold tracking-tight">
+                      {formatDayHeader(day.date)} {isToday && <span className="ml-1 text-[10px] text-[hsl(var(--accent))]">· Hoje</span>}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">{totalItems} eventos</p>
+                  </div>
                 </div>
-              )}
+              </div>
 
-              {dayReminders.length > 0 && (
-                <div className="space-y-1.5">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                    Lembretes
-                  </p>
-                  {dayReminders.map((reminder) => (
+              <div className="space-y-1.5">
+                {(day.transactions as any).map((tx: (typeof calendarTransactions)[number]) => {
+                  const isNegative = tx.amount < 0;
+                  const Icon = getCategoryIcon(tx.category);
+                  return (
                     <div
-                      key={reminder.id}
-                      className="glass-card aura-card flex items-center justify-between rounded-2xl px-3 py-2 text-xs"
+                      key={`tx-${tx.id}`}
+                      className="flex items-center justify-between gap-2 rounded-2xl border border-border/60 bg-card/70 px-3 py-1.5 text-xs"
                     >
-                      <div>
-                        <p className="font-medium">{reminder.title}</p>
-                        <p className="text-[11px] text-muted-foreground">{reminder.time}</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted/60">
+                          <Icon className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-medium leading-tight">{tx.title}</span>
+                          <span className="text-[10px] text-muted-foreground">{tx.category}</span>
+                        </div>
                       </div>
-                      <span className="rounded-full bg-muted/50 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                        {reminder.status === "pending" ? "Pendente" : "Concluído"}
+                      <span
+                        className={cn(
+                          "text-[11px] font-semibold",
+                          isNegative ? "text-rose-400" : "text-emerald-400",
+                        )}
+                      >
+                        {privacyOn
+                          ? "•••••"
+                          : `${isNegative ? "-" : "+"} ${currencyFormatter.format(Math.abs(tx.amount))}`}
                       </span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                  );
+                })}
+
+                {(day.reminders as any).map((rem: (typeof mockReminders)[number]) => (
+                  <div
+                    key={`rem-${rem.id}`}
+                    className="flex items-center justify-between gap-2 rounded-2xl border border-[hsl(var(--reminders-accent))]/50 bg-card/70 px-3 py-1.5 text-xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "flex h-4 w-4 items-center justify-center rounded-full border text-[9px]",
+                          rem.status === "pending"
+                            ? "border-[hsl(var(--reminders-accent))] text-[hsl(var(--reminders-accent))]"
+                            : "border-muted text-muted-foreground",
+                        )}
+                      >
+                        {rem.status === "pending" ? "●" : "✓"}
+                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-muted-foreground">{rem.time}</span>
+                        <span className="font-medium leading-tight">{rem.title}</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] uppercase tracking-[0.18em] text-[hsl(var(--reminders-accent))]">
+                      Lembrete
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })}
       </div>
     </section>
   );
