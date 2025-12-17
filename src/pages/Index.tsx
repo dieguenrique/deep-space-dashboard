@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Eye,
@@ -215,12 +215,47 @@ const getDateKey = (date: Date) => date.toISOString().slice(0, 10);
 
 const Index = () => {
   const [selectedUser, setSelectedUser] = useState<DashboardUser | null>(null);
+  const [bootstrappedUser, setBootstrappedUser] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("finance");
   const [privacyOn, setPrivacyOn] = useState(false);
   const [notesQuery, setNotesQuery] = useState("");
   const [focusedNoteId, setFocusedNoteId] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState<Date | undefined>(new Date());
   const [viewDate, setViewDate] = useState<Date>(new Date());
+
+  useEffect(() => {
+    try {
+      const storedId = window.localStorage.getItem("app_user_id");
+      if (storedId) {
+        const user = MOCK_USERS.find((u) => String(u.id) === storedId);
+        if (user) {
+          setSelectedUser(user);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to read stored user from localStorage", error);
+    } finally {
+      setBootstrappedUser(true);
+    }
+  }, []);
+
+  const handleSelectUser = (user: DashboardUser) => {
+    try {
+      window.localStorage.setItem("app_user_id", String(user.id));
+    } catch (error) {
+      console.error("Failed to persist user to localStorage", error);
+    }
+    setSelectedUser(user);
+  };
+
+  const handleSwitchUser = () => {
+    try {
+      window.localStorage.removeItem("app_user_id");
+    } catch (error) {
+      console.error("Failed to clear stored user from localStorage", error);
+    }
+    setSelectedUser(null);
+  };
 
   const currentUserId = selectedUser?.id ?? null;
   const queryClient = useQueryClient();
@@ -309,8 +344,12 @@ const Index = () => {
         <div className="absolute left-10 bottom-0 h-64 w-64 rounded-full bg-[hsl(var(--reminders-accent))]/20 blur-3xl animate-aurora" />
       </div>
 
-      {!selectedUser ? (
-        <LandingLogin onSelectUser={setSelectedUser} />
+      {!bootstrappedUser ? (
+        <div className="flex min-h-screen items-center justify-center">
+          <p className="text-xs text-muted-foreground">Carregando cockpit...</p>
+        </div>
+      ) : !selectedUser ? (
+        <LandingLogin onSelectUser={handleSelectUser} />
       ) : (
         <motion.main
           className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 pb-24 pt-6 md:px-6 md:pb-10"
@@ -323,14 +362,23 @@ const Index = () => {
               <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Dashboard pessoal</p>
               <h1 className="text-xl font-semibold tracking-tight md:text-2xl">{greet}</h1>
             </div>
-            <button
-              type="button"
-              onClick={() => setPrivacyOn((p) => !p)}
-              className="inline-flex items-center gap-1 rounded-full bg-card/70 px-3 py-1 text-xs text-muted-foreground border border-border/60 backdrop-blur-md hover:bg-card/90 transition-colors"
-            >
-              {privacyOn ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-              <span>{privacyOn ? "Ocultar valores" : "Mostrar valores"}</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPrivacyOn((p) => !p)}
+                className="inline-flex items-center gap-1 rounded-full bg-card/70 px-3 py-1 text-xs text-muted-foreground border border-border/60 backdrop-blur-md hover:bg-card/90 transition-colors"
+              >
+                {privacyOn ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                <span>{privacyOn ? "Ocultar valores" : "Mostrar valores"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleSwitchUser}
+                className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-card/60 px-3 py-1 text-[11px] text-muted-foreground hover:bg-card/80 transition-colors"
+              >
+                Trocar usuário
+              </button>
+            </div>
           </header>
 
           {/* Tabs content */}
