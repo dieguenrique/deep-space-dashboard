@@ -371,13 +371,6 @@ const Index = () => {
                 {privacyOn ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                 <span>{privacyOn ? "Ocultar valores" : "Mostrar valores"}</span>
               </button>
-              <button
-                type="button"
-                onClick={handleSwitchUser}
-                className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-card/60 px-3 py-1 text-[11px] text-muted-foreground hover:bg-card/80 transition-colors"
-              >
-                Trocar usuário
-              </button>
             </div>
           </header>
 
