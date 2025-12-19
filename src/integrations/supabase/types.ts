@@ -14,7 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      financeiro_registros: {
+        Row: {
+          categoria: string | null
+          created_at: string | null
+          data_hora: string
+          descricao: string | null
+          id: number
+          responsavel: string | null
+          tipo: string | null
+          valor: number
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string | null
+          data_hora?: string
+          descricao?: string | null
+          id?: number
+          responsavel?: string | null
+          tipo?: string | null
+          valor: number
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string | null
+          data_hora?: string
+          descricao?: string | null
+          id?: number
+          responsavel?: string | null
+          tipo?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
+      lembretes: {
+        Row: {
+          created_at: string | null
+          data_hora: string | null
+          enviado: boolean | null
+          id: number
+          mensagem: string | null
+          titulo: string | null
+          usuario: string
+        }
+        Insert: {
+          created_at?: string | null
+          data_hora?: string | null
+          enviado?: boolean | null
+          id?: number
+          mensagem?: string | null
+          titulo?: string | null
+          usuario: string
+        }
+        Update: {
+          created_at?: string | null
+          data_hora?: string | null
+          enviado?: boolean | null
+          id?: number
+          mensagem?: string | null
+          titulo?: string | null
+          usuario?: string
+        }
+        Relationships: []
+      }
+      notas: {
+        Row: {
+          conteudo: string | null
+          created_at: string | null
+          id: number
+          titulo: string | null
+          usuario: string
+        }
+        Insert: {
+          conteudo?: string | null
+          created_at?: string | null
+          id?: number
+          titulo?: string | null
+          usuario: string
+        }
+        Update: {
+          conteudo?: string | null
+          created_at?: string | null
+          id?: number
+          titulo?: string | null
+          usuario?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
