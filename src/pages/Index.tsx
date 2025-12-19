@@ -549,6 +549,7 @@ const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transacti
   const formatCurrency = (value: number) => (privacyOn ? "•••••" : currencyFormatter.format(value));
 
   // AI Analysis State
+  const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [aiPeriod, setAiPeriod] = useState<"30d" | "3m" | "12m">("30d");
   const [aiQuestion, setAiQuestion] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -629,92 +630,95 @@ const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transacti
         </div>
       </div>
 
-      {/* AI Analysis Card */}
-      <motion.div
-        className="glass-card aura-card rounded-2xl p-5 space-y-4"
-        variants={cardHover}
-        initial="rest"
-        whileHover="hover"
+      {/* Floating AI Button */}
+      <button
+        onClick={() => setAiDialogOpen(true)}
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg hover:shadow-xl transition-all hover:scale-110"
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20">
-              <Sparkles className="h-4 w-4 text-purple-400" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold">Análise Inteligente por IA</h3>
-              <p className="text-[11px] text-muted-foreground">Insights sobre seus gastos</p>
-            </div>
-          </div>
-        </div>
+        <Sparkles className="h-6 w-6" />
+      </button>
 
-        <div className="space-y-3">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <div className="flex-1">
-              <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Período de análise</label>
-              <Select value={aiPeriod} onValueChange={(v: any) => setAiPeriod(v)}>
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="30d">Últimos 30 dias</SelectItem>
-                  <SelectItem value="3m">Últimos 3 meses</SelectItem>
-                  <SelectItem value="12m">Últimos 12 meses</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-[11px] font-medium text-muted-foreground mb-1 block">
-              Pergunta opcional para a IA
-            </label>
-            <Textarea
-              value={aiQuestion}
-              onChange={(e) => setAiQuestion(e.target.value)}
-              placeholder="Ex: Como posso economizar mais? Quais categorias devo reduzir?"
-              className="min-h-[60px] text-xs resize-none"
-            />
-          </div>
-
-          <Button
-            onClick={handleGenerateAiInsights}
-            disabled={aiLoading}
-            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-          >
-            {aiLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Gerando análise...
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Gerar análise por IA
-              </>
-            )}
-          </Button>
-
-          {aiError && (
-            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-400">
-              <p className="font-medium">Erro:</p>
-              <p className="mt-1 text-[11px]">{aiError}</p>
-            </div>
-          )}
-
-          {aiResult && (
-            <div className="rounded-xl border border-border/50 bg-card/50 p-4 space-y-2 text-xs">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="h-3.5 w-3.5 text-purple-400" />
-                <p className="font-semibold text-foreground">Resultado da Análise</p>
+      {/* AI Analysis Dialog */}
+      <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20">
+                <Sparkles className="h-5 w-5 text-purple-400" />
               </div>
-              <div className="prose prose-sm prose-invert max-w-none text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                {aiResult}
+              <div>
+                <h2 className="text-lg font-semibold">Análise Inteligente por IA</h2>
+                <p className="text-sm text-muted-foreground">Insights sobre seus gastos</p>
               </div>
             </div>
-          )}
-        </div>
-      </motion.div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Período de análise</label>
+                <Select value={aiPeriod} onValueChange={(v: any) => setAiPeriod(v)}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="30d">Últimos 30 dias</SelectItem>
+                    <SelectItem value="3m">Últimos 3 meses</SelectItem>
+                    <SelectItem value="12m">Últimos 12 meses</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                  Pergunta opcional para a IA
+                </label>
+                <Textarea
+                  value={aiQuestion}
+                  onChange={(e) => setAiQuestion(e.target.value)}
+                  placeholder="Ex: Como posso economizar mais? Quais categorias devo reduzir?"
+                  className="min-h-[80px] resize-none"
+                />
+              </div>
+
+              <Button
+                onClick={handleGenerateAiInsights}
+                disabled={aiLoading}
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+              >
+                {aiLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Gerando análise...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Gerar análise por IA
+                  </>
+                )}
+              </Button>
+
+              {aiError && (
+                <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-400">
+                  <p className="font-medium">Erro:</p>
+                  <p className="mt-1 text-xs">{aiError}</p>
+                </div>
+              )}
+
+              {aiResult && (
+                <div className="rounded-lg border border-border/50 bg-card/50 p-4 space-y-2">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="h-4 w-4 text-purple-400" />
+                    <p className="font-semibold">Resultado da Análise</p>
+                  </div>
+                  <div className="prose prose-sm prose-invert max-w-none text-muted-foreground whitespace-pre-wrap leading-relaxed text-sm">
+                    {aiResult}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* KPI cards */}
       <div className="no-scrollbar -mx-2 flex gap-3 overflow-x-auto px-2 pb-1">
