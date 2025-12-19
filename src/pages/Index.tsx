@@ -19,6 +19,8 @@ import {
   ChevronDown,
   ChevronUp,
   Check,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -28,6 +30,11 @@ import { MOCK_USERS, type DashboardUser } from "@/lib/supabaseClient";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchTransactions, fetchReminders, fetchNotes, completeReminder, type TransactionRecord, type ReminderRecord, type NoteRecord } from "@/services/api";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 const financeEvolution = [
   { month: "Jan", value: 1200 },
   { month: "Fev", value: 1500 },
@@ -541,6 +548,76 @@ const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transacti
 
   const formatCurrency = (value: number) => (privacyOn ? "•••••" : currencyFormatter.format(value));
 
+  // AI Analysis State
+  const [aiPeriod, setAiPeriod] = useState<"30d" | "3m" | "12m">("30d");
+  const [aiQuestion, setAiQuestion] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const handleGenerateAiInsights = async () => {
+    setAiLoading(true);
+    setAiError(null);
+    setAiResult(null);
+
+    try {
+      // Calculate date range
+      const endDate = new Date();
+      const startDate = new Date();
+      if (aiPeriod === "30d") startDate.setDate(endDate.getDate() - 30);
+      else if (aiPeriod === "3m") startDate.setMonth(endDate.getMonth() - 3);
+      else if (aiPeriod === "12m") startDate.setFullYear(endDate.getFullYear() - 1);
+
+      // Fetch transactions if needed (reuse existing if they match)
+      const periodTransactions = transactions.filter((tx) => {
+        const txDate = new Date(tx.date);
+        return txDate >= startDate && txDate <= endDate;
+      });
+
+      // Build payload
+      const payload = {
+        transactions: periodTransactions,
+        period: {
+          start: startDate.toISOString().split("T")[0],
+          end: endDate.toISOString().split("T")[0],
+        },
+        userQuestion: aiQuestion.trim() || undefined,
+      };
+
+      const { data, error } = await supabase.functions.invoke("finance-insights", {
+        body: payload,
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        setAiError(data.error);
+        toast({
+          title: "Erro ao gerar análise",
+          description: data.error,
+          variant: "destructive",
+        });
+      } else {
+        setAiResult(data.insightsText || "Análise gerada com sucesso.");
+        toast({
+          title: "Análise concluída",
+          description: "A IA analisou seus gastos e gerou insights.",
+        });
+      }
+    } catch (err: any) {
+      console.error("Error generating AI insights:", err);
+      const errorMsg = err.message || "Erro desconhecido ao chamar a função de análise.";
+      setAiError(errorMsg);
+      toast({
+        title: "Erro",
+        description: errorMsg,
+        variant: "destructive",
+      });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   return (
     <section className="space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -551,6 +628,93 @@ const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transacti
           <span className="text-[11px] text-muted-foreground">Visão geral consolidada</span>
         </div>
       </div>
+
+      {/* AI Analysis Card */}
+      <motion.div
+        className="glass-card aura-card rounded-2xl p-5 space-y-4"
+        variants={cardHover}
+        initial="rest"
+        whileHover="hover"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20">
+              <Sparkles className="h-4 w-4 text-purple-400" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold">Análise Inteligente por IA</h3>
+              <p className="text-[11px] text-muted-foreground">Insights sobre seus gastos</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <div className="flex-1">
+              <label className="text-[11px] font-medium text-muted-foreground mb-1 block">Período de análise</label>
+              <Select value={aiPeriod} onValueChange={(v: any) => setAiPeriod(v)}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="30d">Últimos 30 dias</SelectItem>
+                  <SelectItem value="3m">Últimos 3 meses</SelectItem>
+                  <SelectItem value="12m">Últimos 12 meses</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[11px] font-medium text-muted-foreground mb-1 block">
+              Pergunta opcional para a IA
+            </label>
+            <Textarea
+              value={aiQuestion}
+              onChange={(e) => setAiQuestion(e.target.value)}
+              placeholder="Ex: Como posso economizar mais? Quais categorias devo reduzir?"
+              className="min-h-[60px] text-xs resize-none"
+            />
+          </div>
+
+          <Button
+            onClick={handleGenerateAiInsights}
+            disabled={aiLoading}
+            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+          >
+            {aiLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Gerando análise...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Gerar análise por IA
+              </>
+            )}
+          </Button>
+
+          {aiError && (
+            <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-400">
+              <p className="font-medium">Erro:</p>
+              <p className="mt-1 text-[11px]">{aiError}</p>
+            </div>
+          )}
+
+          {aiResult && (
+            <div className="rounded-xl border border-border/50 bg-card/50 p-4 space-y-2 text-xs">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="h-3.5 w-3.5 text-purple-400" />
+                <p className="font-semibold text-foreground">Resultado da Análise</p>
+              </div>
+              <div className="prose prose-sm prose-invert max-w-none text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                {aiResult}
+              </div>
+            </div>
+          )}
+        </div>
+      </motion.div>
 
       {/* KPI cards */}
       <div className="no-scrollbar -mx-2 flex gap-3 overflow-x-auto px-2 pb-1">
