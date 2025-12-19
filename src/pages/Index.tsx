@@ -231,6 +231,8 @@ const Index = () => {
   const [focusedNoteId, setFocusedNoteId] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState<Date | undefined>(new Date());
   const [viewDate, setViewDate] = useState<Date>(new Date());
+  const [focusChecklist, setFocusChecklist] = useState<{ id: string; text: string; done: boolean }[]>([]);
+  const [focusShowChecklist, setFocusShowChecklist] = useState(false);
 
   useEffect(() => {
     try {
@@ -341,6 +343,39 @@ const Index = () => {
   };
 
   const focusNote = filteredNotes.find((n) => n.id === focusedNoteId) ?? null;
+
+  useEffect(() => {
+    if (!focusNote) {
+      setFocusChecklist([]);
+      setFocusShowChecklist(false);
+      return;
+    }
+
+    const body = (focusNote.body ?? "").replace(/\r/g, "");
+    const lines = body
+      .split("\n")
+      .map((line) => line.replace(/^[-•–]\s+/, "").trim())
+      .filter((line) => line.length > 0 && line.length > 3);
+
+    const items = lines.map((text, index) => ({
+      id: `focus-${focusNote.id}-${index}`,
+      text,
+      done: false,
+    }));
+
+    setFocusChecklist(items);
+    setFocusShowChecklist(items.length > 0);
+  }, [focusNote]);
+
+  const handleToggleFocusChecklist = () => {
+    setFocusShowChecklist((prev) => !prev);
+  };
+
+  const handleToggleFocusItem = (itemId: string) => {
+    setFocusChecklist((prev) =>
+      prev.map((item) => (item.id === itemId ? { ...item, done: !item.done } : item)),
+    );
+  };
 
   const greet = selectedUser ? `Bom dia, ${selectedUser.name}!` : "Bom dia";
 
@@ -462,10 +497,43 @@ const Index = () => {
           <Dialog open={!!focusNote} onOpenChange={() => setFocusedNoteId(null)}>
             <DialogContent className="glass-card aura-card border border-border/60 bg-background/90 max-w-lg">
               {focusNote && (
-                <div className="space-y-3">
-                  <span className="tag-pill text-[10px] uppercase tracking-[0.18em]">Focus mode</span>
-                  <h2 className="text-lg font-semibold tracking-tight">{focusNote.title}</h2>
-                  <p className="text-sm leading-relaxed text-muted-foreground">{focusNote.body}</p>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <span className="tag-pill text-[10px] uppercase tracking-[0.18em]">Focus mode</span>
+                      <h2 className="text-lg font-semibold tracking-tight">{focusNote.title}</h2>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleToggleFocusChecklist}
+                      className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-background/80"
+                    >
+                      <ListChecks className="h-3.5 w-3.5" />
+                      <span>{focusShowChecklist ? "Texto" : "Checklist"}</span>
+                    </button>
+                  </div>
+
+                  {focusShowChecklist && focusChecklist.length > 0 ? (
+                    <ul className="mt-1 space-y-2 text-sm">
+                      {focusChecklist.map((item) => (
+                        <li key={item.id} className="flex items-start gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleFocusItem(item.id)}
+                            className={cn(
+                              "mt-[3px] flex h-4 w-4 items-center justify-center rounded-full border border-border/70 bg-background/60 text-[10px]",
+                              item.done && "border-[hsl(var(--accent))] bg-[hsl(var(--accent))]/40 text-[hsl(var(--accent))]",
+                            )}
+                          >
+                            {item.done && <Check className="h-3 w-3" />}
+                          </button>
+                          <p className={cn("text-[13px] leading-relaxed", item.done && "line-through text-muted-foreground/70")}>{item.text}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">{focusNote.body}</p>
+                  )}
                 </div>
               )}
             </DialogContent>
