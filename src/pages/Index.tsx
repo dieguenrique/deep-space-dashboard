@@ -21,6 +21,7 @@ import {
   Check,
   Sparkles,
   Loader2,
+  ListChecks,
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -1089,7 +1090,56 @@ interface NotesTabProps {
   onOpenNote: (id: number) => void;
 }
 
+interface ChecklistItem {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+const buildChecklistFromText = (raw: string): ChecklistItem[] => {
+  const text = raw.replace(/\r/g, "").trim();
+  if (!text) return [];
+
+  const pieces = text
+    .split(/\n+|[•\-–]\s+|(?<=\.)\s+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+
+  return pieces.map((p, index) => ({
+    id: `${Date.now()}-${index}`,
+    text: p,
+    done: false,
+  }));
+};
+
 const NotesTab = ({ notes, query, onQueryChange, onOpenNote }: NotesTabProps) => {
+  const [checklistsByNote, setChecklistsByNote] = useState<Record<number, ChecklistItem[]>>({});
+
+  const toggleChecklist = (note: NoteRecord, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    setChecklistsByNote((prev) => {
+      const current = prev[note.id];
+      if (!current || current.length === 0) {
+        const items = buildChecklistFromText(`${note.title ?? ""}. ${note.body ?? ""}`);
+        return { ...prev, [note.id]: items };
+      }
+      return { ...prev, [note.id]: [] };
+    });
+  };
+
+  const toggleItemDone = (noteId: number, itemId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setChecklistsByNote((prev) => ({
+      ...prev,
+      [noteId]: prev[noteId].map((item) =>
+        item.id === itemId ? { ...item, done: !item.done } : item,
+      ),
+    }));
+  };
+
   return (
     <section className="space-y-3">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -1128,17 +1178,51 @@ const NotesTab = ({ notes, query, onQueryChange, onOpenNote }: NotesTabProps) =>
               ? `${Math.max(1, Math.round(diffHours))}h ago`
               : createdAt.toLocaleDateString("pt-PT", { day: "2-digit", month: "2-digit" });
 
+            const checklist = checklistsByNote[note.id] ?? [];
+            const hasChecklist = checklist.length > 0;
+
             return (
               <motion.button
                 key={note.id}
                 type="button"
                 onClick={() => onOpenNote(note.id)}
-                className="mb-4 w-full break-inside-avoid rounded-xl border border-white/10 bg-[hsl(var(--card))/0.7] px-4 py-3 text-left text-xs shadow-lg backdrop-blur-md hover-scale"
+                className="relative mb-4 w-full break-inside-avoid rounded-xl border border-white/10 bg-[hsl(var(--card))/0.7] px-4 py-3 text-left text-xs shadow-lg backdrop-blur-md hover-scale"
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <h3 className="text-sm font-semibold leading-snug text-foreground">{note.title}</h3>
-                <p className="mt-1 line-clamp-3 text-[11px] leading-relaxed text-muted-foreground">{note.body}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="text-sm font-semibold leading-snug text-foreground">{note.title}</h3>
+                  <button
+                    type="button"
+                    onClick={(event) => toggleChecklist(note, event)}
+                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/40 px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-background/70"
+                  >
+                    <ListChecks className="h-3 w-3" />
+                    <span>{hasChecklist ? "Texto" : "Checklist"}</span>
+                  </button>
+                </div>
+
+                {hasChecklist ? (
+                  <ul className="mt-2 space-y-1.5">
+                    {checklist.map((item) => (
+                      <li key={item.id} className="flex items-start gap-2">
+                        <div
+                          onClick={(event) => toggleItemDone(note.id, item.id, event)}
+                          className={cn(
+                            "mt-[2px] flex h-4 w-4 cursor-pointer items-center justify-center rounded-sm border border-border/70 bg-background/60 text-[10px]",
+                            item.done && "border-[hsl(var(--accent))] bg-[hsl(var(--accent))]/30 text-[hsl(var(--accent))]",
+                          )}
+                        >
+                          {item.done && <Check className="h-3 w-3" />}
+                        </div>
+                        <p className={cn("text-[11px] leading-relaxed", item.done && "line-through text-muted-foreground/70")}>{item.text}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-1 line-clamp-3 text-[11px] leading-relaxed text-muted-foreground">{note.body}</p>
+                )}
+
                 <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground/80">
                   <span className="rounded-full bg-[hsl(var(--notes-accent))/0.12] px-2 py-0.5 text-[10px] font-medium text-[hsl(var(--notes-accent))]">
                     Nota
