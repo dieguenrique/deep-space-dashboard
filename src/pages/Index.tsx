@@ -30,7 +30,7 @@ import { MOCK_USERS, type DashboardUser } from "@/lib/supabaseClient";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchTransactions, fetchReminders, fetchNotes, completeReminder, type TransactionRecord, type ReminderRecord, type NoteRecord } from "@/services/api";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
