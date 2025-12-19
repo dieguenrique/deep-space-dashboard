@@ -1,3 +1,4 @@
+import type React from "react";
 import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
@@ -1096,18 +1097,22 @@ interface ChecklistItem {
   done: boolean;
 }
 
-const buildChecklistFromText = (raw: string): ChecklistItem[] => {
-  const text = raw.replace(/\r/g, "").trim();
-  if (!text) return [];
+const buildChecklistFromText = (rawBody: string | null): ChecklistItem[] => {
+  if (!rawBody) return [];
 
-  const pieces = text
-    .split(/\n+|[•\-–]\s+|(?<=\.)\s+/)
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0);
+  const lines = rawBody
+    .replace(/\r/g, "")
+    .split("\n")
+    .map((line) =>
+      line
+        .replace(/^[-•–]\s+/, "")
+        .trim(),
+    )
+    .filter((line) => line.length > 0 && line.length > 3);
 
-  return pieces.map((p, index) => ({
+  return lines.map((text, index) => ({
     id: `${Date.now()}-${index}`,
-    text: p,
+    text,
     done: false,
   }));
 };
@@ -1123,7 +1128,7 @@ const NotesTab = ({ notes, query, onQueryChange, onOpenNote }: NotesTabProps) =>
     setChecklistsByNote((prev) => {
       const current = prev[note.id];
       if (!current || current.length === 0) {
-        const items = buildChecklistFromText(`${note.title ?? ""}. ${note.body ?? ""}`);
+        const items = buildChecklistFromText(note.body ?? null);
         return { ...prev, [note.id]: items };
       }
       return { ...prev, [note.id]: [] };
@@ -1203,18 +1208,19 @@ const NotesTab = ({ notes, query, onQueryChange, onOpenNote }: NotesTabProps) =>
                 </div>
 
                 {hasChecklist ? (
-                  <ul className="mt-2 space-y-1.5">
+                  <ul className="mt-3 space-y-1.5">
                     {checklist.map((item) => (
                       <li key={item.id} className="flex items-start gap-2">
-                        <div
+                        <button
+                          type="button"
                           onClick={(event) => toggleItemDone(note.id, item.id, event)}
                           className={cn(
-                            "mt-[2px] flex h-4 w-4 cursor-pointer items-center justify-center rounded-sm border border-border/70 bg-background/60 text-[10px]",
-                            item.done && "border-[hsl(var(--accent))] bg-[hsl(var(--accent))]/30 text-[hsl(var(--accent))]",
+                            "mt-[2px] flex h-4 w-4 items-center justify-center rounded-full border border-border/70 bg-background/60 text-[10px]",
+                            item.done && "border-[hsl(var(--accent))] bg-[hsl(var(--accent))]/40 text-[hsl(var(--accent))]",
                           )}
                         >
                           {item.done && <Check className="h-3 w-3" />}
-                        </div>
+                        </button>
                         <p className={cn("text-[11px] leading-relaxed", item.done && "line-through text-muted-foreground/70")}>{item.text}</p>
                       </li>
                     ))}
