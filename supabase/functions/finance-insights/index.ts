@@ -13,14 +13,14 @@ serve(async (req) => {
 
   try {
     const { transactions, period, userQuestion } = await req.json();
-    
+
     console.log(`[finance-insights] Received ${transactions?.length || 0} transactions for period ${period?.start} to ${period?.end}`);
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      console.error('[finance-insights] LOVABLE_API_KEY not configured');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    if (!OPENAI_API_KEY) {
+      console.error('[finance-insights] OPENAI_API_KEY not configured');
       return new Response(
-        JSON.stringify({ error: 'AI service not configured' }), 
+        JSON.stringify({ error: 'AI service not configured (OpenAI)' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -46,15 +46,18 @@ serve(async (req) => {
 
     const userContext = userQuestion ? `\n\nPergunta do usuário: "${userQuestion}"` : '';
 
-    const systemPrompt = `Você é um assistente financeiro experiente. Analise os dados fornecidos e retorne insights práticos e acionáveis em português (pt-PT).
+    const systemPrompt = `Você é o "Agente Estrategista", um assistente financeiro de elite integrado ao Dashboard Deep Space. Sua missão é analisar dados transacionais e fornecer inteligência estratégica.
 
-Estruture sua resposta em 4 seções CURTAS:
-1. **Resumo**: Visão geral dos gastos no período
-2. **Insights principais**: 2-3 observações mais importantes
-3. **Alertas**: Riscos ou padrões preocupantes (se houver)
-4. **Ações recomendadas**: 2-3 passos concretos para melhorar
+Diretrizes de Resposta:
+1. **Analise Profundamente**: Olhe para padrões de gastos semanais, categorias dominantes e evolução temporal.
+2. **Seja Estratégico**: Não apenas liste números, explique o que eles significam para a saúde financeira do usuário.
+3. **Naturalidade**: Responda de forma fluida, como se fosse um consultor pessoal.
+4. **Formatação**: No caso de perguntas específicas, responda diretamente. Se for uma consulta geral, use:
+   - **Diagnóstico**: O estado atual (bom, alerta, crítico).
+   - **Padrões**: O que você notou de recorrente ou incomum.
+   - **Caminho Estratégico**: 2-3 recomendações práticas.
 
-Seja conciso, direto e use valores em euros (€). Evite repetições.`;
+Use sempre o português (pt-PT) e valores em euros (€). Seja conciso e impactante.`;
 
     const userPrompt = `Período: ${period.start} até ${period.end}
 Receitas totais: €${totalIncome.toFixed(2)}
@@ -65,44 +68,31 @@ Despesas por categoria (top 5): ${categorySummary || 'Nenhum gasto registrado'}
 
 Total de transações: ${transactions.length}${userContext}`;
 
-    console.log('[finance-insights] Calling Lovable AI...');
+    console.log('[finance-insights] Calling OpenAI...');
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
+        temperature: 0.7,
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[finance-insights] AI API error: ${response.status} - ${errorText}`);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: 'Limite de requisições excedido. Tente novamente em alguns minutos.' }), 
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: 'Créditos insuficientes. Por favor, adicione créditos ao seu workspace Lovable.' }), 
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      const errorData = await response.json();
+      console.error(`[finance-insights] OpenAI API error:`, errorData);
 
       return new Response(
-        JSON.stringify({ error: 'Erro ao processar análise por IA' }), 
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: errorData.error?.message || 'Erro ao processar análise por IA' }),
+        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -112,14 +102,14 @@ Total de transações: ${transactions.length}${userContext}`;
     console.log('[finance-insights] Analysis generated successfully');
 
     return new Response(
-      JSON.stringify({ insightsText }), 
+      JSON.stringify({ insightsText }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('[finance-insights] Error:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Erro desconhecido' }), 
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Erro desconhecido' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

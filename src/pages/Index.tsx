@@ -23,6 +23,8 @@ import {
   Sparkles,
   Loader2,
   ListChecks,
+  X as CloseIcon,
+  AlertCircle,
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -380,7 +382,7 @@ const Index = () => {
   const greet = selectedUser ? `Bom dia, ${selectedUser.name}!` : "Bom dia";
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-x-hidden overflow-y-auto">
       {/* Aurora background */}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute -left-32 top-0 h-80 w-80 rounded-full bg-primary/20 blur-3xl animate-aurora" />
@@ -402,9 +404,9 @@ const Index = () => {
           transition={{ duration: 0.5, ease: "easeOut" }}
         >
           <header className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Dashboard pessoal</p>
-              <h1 className="text-xl font-semibold tracking-tight md:text-2xl">{greet}</h1>
+            <div className="space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/70">Dashboard pessoal</p>
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{greet}</h1>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -495,46 +497,68 @@ const Index = () => {
           </nav>
 
           <Dialog open={!!focusNote} onOpenChange={() => setFocusedNoteId(null)}>
-            <DialogContent className="glass-card aura-card border border-border/60 bg-background/90 max-w-lg">
+            <DialogContent className="glass-card aura-card border border-border/60 bg-background/90 max-w-2xl max-h-[90vh] overflow-hidden p-0 [&>button:last-child]:hidden flex flex-col">
               {focusNote && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="space-y-1">
-                      <span className="tag-pill text-[10px] uppercase tracking-[0.18em]">Focus mode</span>
-                      <h2 className="text-lg font-semibold tracking-tight">{focusNote.title}</h2>
+                <>
+                  <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-xl border-b border-border/40 px-6 py-5 flex items-center justify-between gap-4 shrink-0">
+                    <div className="space-y-1.5 flex-1 min-w-0">
+                      <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Focus mode</span>
+                      <h2 className="text-2xl font-bold tracking-tight text-foreground leading-tight">{focusNote.title}</h2>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleToggleFocusChecklist}
-                      className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-background/80"
-                    >
-                      <ListChecks className="h-3.5 w-3.5" />
-                      <span>{focusShowChecklist ? "Texto" : "Checklist"}</span>
-                    </button>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={handleToggleFocusChecklist}
+                        className={cn(
+                          "inline-flex shrink-0 items-center gap-2 rounded-full border border-border/60 px-4 py-2 text-xs font-semibold transition-all duration-300",
+                          focusShowChecklist ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "bg-background/60 text-muted-foreground hover:bg-background/80"
+                        )}
+                      >
+                        <ListChecks className="h-4 w-4" />
+                        <span>{focusShowChecklist ? "Visualizar Texto" : "Visualizar Checklist"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFocusedNoteId(null)}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all duration-300"
+                        title="Fechar nota"
+                      >
+                        <CloseIcon className="h-5 w-5" strokeWidth={2.5} />
+                      </button>
+                    </div>
                   </div>
 
-                  {focusShowChecklist && focusChecklist.length > 0 ? (
-                    <ul className="mt-1 space-y-2 text-sm">
-                      {focusChecklist.map((item) => (
-                        <li key={item.id} className="flex items-start gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleFocusItem(item.id)}
-                            className={cn(
-                              "mt-[3px] flex h-4 w-4 items-center justify-center rounded-full border border-border/70 bg-background/60 text-[10px]",
-                              item.done && "border-[hsl(var(--accent))] bg-[hsl(var(--accent))]/40 text-[hsl(var(--accent))]",
-                            )}
-                          >
-                            {item.done && <Check className="h-3 w-3" />}
-                          </button>
-                          <p className={cn("text-[13px] leading-relaxed", item.done && "line-through text-muted-foreground/70")}>{item.text}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-line">{focusNote.body}</p>
-                  )}
-                </div>
+                  <div className="flex-1 px-8 py-8 overflow-y-auto no-scrollbar">
+                    {focusShowChecklist && focusChecklist.length > 0 ? (
+                      <ul className="space-y-0">
+                        {focusChecklist.map((item) => (
+                          <li key={item.id} className="group flex items-start gap-4 border-b border-border/20 py-5 transition-all duration-300 last:border-0">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleFocusItem(item.id)}
+                              className={cn(
+                                "mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border-2 transition-all duration-300",
+                                item.done
+                                  ? "border-emerald-500 bg-emerald-500 text-white shadow-lg shadow-emerald-500/20"
+                                  : "border-border/60 bg-background/40 group-hover:border-primary/50",
+                              )}
+                            >
+                              {item.done && <Check className="h-4 w-4" strokeWidth={3} />}
+                            </button>
+                            <p className={cn(
+                              "text-[16px] leading-[1.6] transition-all duration-300 flex-1 py-0.5",
+                              item.done ? "line-through text-muted-foreground/40 italic" : "text-foreground font-medium"
+                            )}>
+                              {item.text}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-[17px] leading-[1.8] text-muted-foreground/90 whitespace-pre-line font-medium max-w-none">{focusNote.body}</p>
+                    )}
+                  </div>
+                </>
               )}
             </DialogContent>
           </Dialog>
@@ -691,100 +715,172 @@ const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transacti
 
   return (
     <section className="space-y-4">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="tag-pill bg-gradient-to-r from-[hsl(var(--finance-gradient-start))]/20 to-[hsl(var(--finance-gradient-end))]/20 text-xs">
+          <span className="tag-pill bg-gradient-to-r from-[hsl(var(--finance-gradient-start))]/20 to-[hsl(var(--finance-gradient-end))]/20 text-xs text-primary font-bold">
             Finanças
           </span>
-          <span className="text-[11px] text-muted-foreground">Visão geral consolidada</span>
+          <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Visão geral</span>
         </div>
+        <button
+          onClick={() => setAiDialogOpen(true)}
+          className="group relative flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-bold text-primary transition-all hover:bg-primary/20 hover:border-primary/50"
+        >
+          <Sparkles className="h-3.5 w-3.5 animate-pulse" />
+          <span>Consultar IA</span>
+          <div className="absolute -inset-[1px] -z-10 rounded-full bg-gradient-to-r from-primary/40 to-accent/40 opacity-0 blur-sm transition-opacity group-hover:opacity-100" />
+        </button>
       </div>
 
-      {/* Floating AI Button */}
-      <button
-        onClick={() => setAiDialogOpen(true)}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg hover:shadow-xl transition-all hover:scale-110"
-      >
-        <Sparkles className="h-6 w-6" />
-      </button>
+
 
       {/* AI Analysis Dialog */}
       <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20">
-                <Sparkles className="h-5 w-5 text-purple-400" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold">Análise Inteligente por IA</h2>
-                <p className="text-sm text-muted-foreground">Insights sobre seus gastos</p>
+        <DialogContent className="glass-card aura-card max-w-2xl border-border/40 bg-background/95 p-0 overflow-hidden">
+          <div className="flex flex-col max-h-[85vh]">
+            <div className="bg-gradient-to-r from-primary/10 via-accent/5 to-transparent px-6 py-6 border-b border-border/40">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30">
+                  <Sparkles className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold tracking-tight text-foreground">Agente Estrategista</h2>
+                  <p className="text-sm text-muted-foreground">Inteligência aplicada às suas finanças</p>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Período de análise</label>
-                <Select value={aiPeriod} onValueChange={(v: any) => setAiPeriod(v)}>
-                  <SelectTrigger className="h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="30d">Últimos 30 dias</SelectItem>
-                    <SelectItem value="3m">Últimos 3 meses</SelectItem>
-                    <SelectItem value="12m">Últimos 12 meses</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                  Pergunta opcional para a IA
-                </label>
-                <Textarea
-                  value={aiQuestion}
-                  onChange={(e) => setAiQuestion(e.target.value)}
-                  placeholder="Ex: Como posso economizar mais? Quais categorias devo reduzir?"
-                  className="min-h-[80px] resize-none"
-                />
-              </div>
-
-              <Button
-                onClick={handleGenerateAiInsights}
-                disabled={aiLoading}
-                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-              >
-                {aiLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Gerando análise...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Gerar análise por IA
-                  </>
-                )}
-              </Button>
-
-              {aiError && (
-                <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-400">
-                  <p className="font-medium">Erro:</p>
-                  <p className="mt-1 text-xs">{aiError}</p>
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary/80">
+                  <div className="h-1 w-1 rounded-full bg-primary" />
+                  Configurações do Agente
                 </div>
-              )}
 
-              {aiResult && (
-                <div className="rounded-lg border border-border/50 bg-card/50 p-4 space-y-2">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="h-4 w-4 text-purple-400" />
-                    <p className="font-semibold">Resultado da Análise</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Janela Temporal</label>
+                    <Select value={aiPeriod} onValueChange={(v: any) => setAiPeriod(v)}>
+                      <SelectTrigger className="h-11 rounded-xl border-border/60 bg-card/50">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border/60 bg-background/95 backdrop-blur-xl">
+                        <SelectItem value="30d">Últimos 30 dias</SelectItem>
+                        <SelectItem value="3m">Últimos 3 meses</SelectItem>
+                        <SelectItem value="12m">Últimos 12 meses</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="prose prose-sm prose-invert max-w-none text-muted-foreground whitespace-pre-wrap leading-relaxed text-sm">
-                    {aiResult}
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Objetivo da IA</label>
+                    <div className="flex h-11 items-center rounded-xl border border-border/60 bg-card/50 px-3 text-xs text-foreground/80 font-medium italic">
+                      Analista Financeiro Estratégico
+                    </div>
                   </div>
                 </div>
+              </div>
+
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary/80">
+                  <div className="h-1 w-1 rounded-full bg-primary" />
+                  Sugestões de Consulta
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "Como está meu consumo semanal?",
+                    "Qual a evolução das minhas despesas?",
+                    "Onde posso economizar este mês?",
+                    "Análise rápida dos maiores gastos",
+                  ].map((sug) => (
+                    <button
+                      key={sug}
+                      onClick={() => setAiQuestion(sug)}
+                      className="rounded-full border border-border/40 bg-card/30 px-3 py-1.5 text-[11px] font-medium text-muted-foreground/90 transition-all hover:bg-primary/10 hover:border-primary/30 hover:text-primary"
+                    >
+                      {sug}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary/80">
+                  <div className="h-1 w-1 rounded-full bg-primary" />
+                  Sua Pergunta
+                </div>
+                <div className="relative group">
+                  <Textarea
+                    value={aiQuestion}
+                    onChange={(e) => setAiQuestion(e.target.value)}
+                    placeholder="Ex: Como andam minhas finanças de forma geral?"
+                    className="min-h-[100px] rounded-2xl border-border/60 bg-card/50 px-4 py-3 text-sm focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50"
+                  />
+                  <div className="absolute right-3 bottom-3">
+                    <Button
+                      onClick={handleGenerateAiInsights}
+                      disabled={aiLoading}
+                      size="sm"
+                      className="rounded-xl bg-primary px-4 font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-transform active:scale-95"
+                    >
+                      {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {(aiLoading || aiResult || aiError) && (
+                <div className="pt-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                  {aiLoading ? (
+                    <div className="rounded-2xl border border-border/40 bg-card/30 p-8 flex flex-col items-center justify-center text-center gap-4">
+                      <div className="relative">
+                        <div className="h-12 w-12 rounded-full border-t-2 border-primary animate-spin" />
+                        <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-4 w-4 text-primary animate-pulse" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold text-foreground">Processando inteligência...</p>
+                        <p className="text-[11px] text-muted-foreground italic">O estrategista está revisando suas transações.</p>
+                      </div>
+                    </div>
+                  ) : aiError ? (
+                    <div className="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4 flex items-center gap-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-500/20 text-rose-400">
+                        <AlertCircle className="h-5 w-5" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-bold text-rose-400">Falha no processamento</p>
+                        <p className="text-xs text-rose-400/80">{aiError}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-primary/20 bg-primary/5 p-6 shadow-2xl shadow-primary/5">
+                      <div className="flex items-center justify-between mb-4 border-b border-primary/10 pb-3">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                          <p className="text-xs font-black uppercase tracking-widest text-primary">Relatório de Insights</p>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground/60 font-mono">Gerado agora</span>
+                      </div>
+                      <div className="prose prose-sm prose-invert max-w-none">
+                        <div className="text-[14px] leading-relaxed text-foreground/90 font-medium whitespace-pre-wrap selection:bg-primary/30">
+                          {aiResult}
+                        </div>
+                      </div>
+                      <div className="mt-6 flex justify-end">
+                        <button
+                          onClick={() => setAiResult(null)}
+                          className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
+                        >
+                          Limpar resultado
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
+            </div>
+
+            <div className="px-6 py-4 bg-card/30 border-t border-border/40 text-[10px] text-muted-foreground/60 text-center uppercase tracking-widest italic font-medium">
+              Powered by Dashboard Deep Space AI Agent
             </div>
           </div>
         </DialogContent>
@@ -1263,12 +1359,15 @@ const NotesTab = ({ notes, query, onQueryChange, onOpenNote }: NotesTabProps) =>
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-sm font-semibold leading-snug text-foreground">{note.title}</h3>
+                <div className="flex items-start justify-between gap-4">
+                  <h3 className="line-clamp-4 flex-1 text-[15px] font-bold leading-tight tracking-tight text-foreground/90">{note.title}</h3>
                   <button
                     type="button"
                     onClick={(event) => toggleChecklist(note, event)}
-                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/40 px-2 py-0.5 text-[10px] text-muted-foreground hover:bg-background/70"
+                    className={cn(
+                      "inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[10px] font-medium transition-all duration-300",
+                      hasChecklist ? "border-primary/50 bg-primary/10 text-primary shadow-[0_0_10px_rgba(var(--primary),0.2)]" : "text-muted-foreground hover:bg-background/80"
+                    )}
                   >
                     <ListChecks className="h-3 w-3" />
                     <span>{hasChecklist ? "Texto" : "Checklist"}</span>
@@ -1276,25 +1375,30 @@ const NotesTab = ({ notes, query, onQueryChange, onOpenNote }: NotesTabProps) =>
                 </div>
 
                 {hasChecklist ? (
-                  <ul className="mt-3 space-y-1.5">
+                  <ul className="mt-4 space-y-0">
                     {checklist.map((item) => (
-                      <li key={item.id} className="flex items-start gap-2">
+                      <li key={item.id} className="group flex items-start gap-2.5 border-b border-border/10 py-2.5 last:border-0">
                         <button
                           type="button"
                           onClick={(event) => toggleItemDone(note.id, item.id, event)}
                           className={cn(
-                            "mt-[2px] flex h-4 w-4 items-center justify-center rounded-full border border-border/70 bg-background/60 text-[10px]",
-                            item.done && "border-[hsl(var(--accent))] bg-[hsl(var(--accent))]/40 text-[hsl(var(--accent))]",
+                            "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-[6px] border border-border/70 bg-background/40 transition-all duration-300",
+                            item.done ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400" : "group-hover:border-primary/40",
                           )}
                         >
                           {item.done && <Check className="h-3 w-3" />}
                         </button>
-                        <p className={cn("text-[11px] leading-relaxed", item.done && "line-through text-muted-foreground/70")}>{item.text}</p>
+                        <p className={cn(
+                          "text-[12px] leading-relaxed transition-colors duration-300",
+                          item.done ? "line-through text-muted-foreground/50 italic" : "text-muted-foreground font-medium"
+                        )}>
+                          {item.text}
+                        </p>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-1 line-clamp-3 text-[11px] leading-relaxed text-muted-foreground">{note.body}</p>
+                  <p className="mt-2.5 line-clamp-3 text-[12px] leading-relaxed text-muted-foreground/80 font-medium">{note.body}</p>
                 )}
 
                 <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground/80">
