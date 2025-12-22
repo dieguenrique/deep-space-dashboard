@@ -25,6 +25,8 @@ import {
   ListChecks,
   X as CloseIcon,
   AlertCircle,
+  Trash2,
+  Edit3,
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -33,7 +35,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { MOCK_USERS, type DashboardUser } from "@/lib/supabaseClient";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchTransactions, fetchReminders, fetchNotes, completeReminder, type TransactionRecord, type ReminderRecord, type NoteRecord } from "@/services/api";
+import { fetchTransactions, fetchReminders, fetchNotes, completeReminder, updateNote, deleteNote, type TransactionRecord, type ReminderRecord, type NoteRecord } from "@/services/api";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -235,6 +237,10 @@ const Index = () => {
   const [viewDate, setViewDate] = useState<Date>(new Date());
   const [focusChecklist, setFocusChecklist] = useState<{ id: string; text: string; done: boolean }[]>([]);
   const [focusShowChecklist, setFocusShowChecklist] = useState(false);
+  const [editingNote, setEditingNote] = useState<NoteRecord | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editBody, setEditBody] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   useEffect(() => {
     try {
@@ -344,6 +350,53 @@ const Index = () => {
     });
   };
 
+  // Note mutations
+  const updateNoteMutation = useMutation({
+    mutationFn: ({ id, title, body }: { id: number; title: string; body: string }) =>
+      updateNote(id, title, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes", currentUserId] });
+      toast({ title: "Nota atualizada", description: "A nota foi atualizada com sucesso." });
+      setEditingNote(null);
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível atualizar a nota.", variant: "destructive" });
+    },
+  });
+
+  const deleteNoteMutation = useMutation({
+    mutationFn: (id: number) => deleteNote(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes", currentUserId] });
+      toast({ title: "Nota excluída", description: "A nota foi excluída com sucesso." });
+      setDeleteConfirmId(null);
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Não foi possível excluir a nota.", variant: "destructive" });
+    },
+  });
+
+  const handleEditNote = (note: NoteRecord) => {
+    setEditingNote(note);
+    setEditTitle(note.title);
+    setEditBody(note.body);
+  };
+
+  const handleSaveNote = () => {
+    if (!editingNote) return;
+    updateNoteMutation.mutate({ id: editingNote.id, title: editTitle, body: editBody });
+  };
+
+  const handleDeleteNote = (id: number) => {
+    setDeleteConfirmId(id);
+  };
+
+  const confirmDeleteNote = () => {
+    if (deleteConfirmId) {
+      deleteNoteMutation.mutate(deleteConfirmId);
+    }
+  };
+
   const focusNote = filteredNotes.find((n) => n.id === focusedNoteId) ?? null;
 
   useEffect(() => {
@@ -438,6 +491,8 @@ const Index = () => {
                   query={notesQuery}
                   onQueryChange={setNotesQuery}
                   onOpenNote={setFocusedNoteId}
+                  onEditNote={handleEditNote}
+                  onDeleteNote={handleDeleteNote}
                 />
               )}
               {activeTab === "reminders" && (
@@ -560,6 +615,106 @@ const Index = () => {
                   </div>
                 </>
               )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Edit Note Modal */}
+          <Dialog open={!!editingNote} onOpenChange={() => setEditingNote(null)}>
+            <DialogContent className="glass-card aura-card border border-border/60 bg-background/90 max-w-lg p-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">Editar Nota</h3>
+                  <p className="text-sm text-muted-foreground">Faça as alterações desejadas e salve.</p>
+                </div>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label htmlFor="edit-title" className="text-xs font-medium text-muted-foreground">Título</label>
+                    <Input
+                      id="edit-title"
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="bg-card/70 border-border/60"
+                      placeholder="Título da nota"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="edit-body" className="text-xs font-medium text-muted-foreground">Conteúdo</label>
+                    <Textarea
+                      id="edit-body"
+                      value={editBody}
+                      onChange={(e) => setEditBody(e.target.value)}
+                      className="min-h-[150px] bg-card/70 border-border/60 resize-none"
+                      placeholder="Conteúdo da nota"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditingNote(null)}
+                    className="border-border/60"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleSaveNote}
+                    disabled={updateNoteMutation.isPending}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    {updateNoteMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      "Salvar"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Delete Confirmation Modal */}
+          <Dialog open={deleteConfirmId !== null} onOpenChange={() => setDeleteConfirmId(null)}>
+            <DialogContent className="glass-card aura-card border border-border/60 bg-background/90 max-w-sm p-6">
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-500/10 text-rose-500">
+                    <AlertCircle className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-semibold">Excluir Nota</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Tem certeza que deseja excluir esta nota? Esta ação não pode ser desfeita.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setDeleteConfirmId(null)}
+                    className="border-border/60"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={confirmDeleteNote}
+                    disabled={deleteNoteMutation.isPending}
+                    className="bg-rose-500 hover:bg-rose-600"
+                  >
+                    {deleteNoteMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Excluindo...
+                      </>
+                    ) : (
+                      "Excluir"
+                    )}
+                  </Button>
+                </div>
+              </div>
             </DialogContent>
           </Dialog>
         </motion.main>
@@ -1253,6 +1408,8 @@ interface NotesTabProps {
   query: string;
   onQueryChange: (v: string) => void;
   onOpenNote: (id: number) => void;
+  onEditNote: (note: NoteRecord) => void;
+  onDeleteNote: (id: number) => void;
 }
 
 interface ChecklistItem {
@@ -1281,7 +1438,7 @@ const buildChecklistFromText = (rawBody: string | null): ChecklistItem[] => {
   }));
 };
 
-const NotesTab = ({ notes, query, onQueryChange, onOpenNote }: NotesTabProps) => {
+const NotesTab = ({ notes, query, onQueryChange, onOpenNote, onEditNote, onDeleteNote }: NotesTabProps) => {
   const [checklistsByNote, setChecklistsByNote] = useState<Record<number, ChecklistItem[]>>({});
 
   const toggleChecklist = (note: NoteRecord, event?: React.MouseEvent) => {
@@ -1405,7 +1562,31 @@ const NotesTab = ({ notes, query, onQueryChange, onOpenNote }: NotesTabProps) =>
                   <span className="rounded-full bg-[hsl(var(--notes-accent))/0.12] px-2 py-0.5 text-[10px] font-medium text-[hsl(var(--notes-accent))]">
                     Nota
                   </span>
-                  <span>{dateLabel}</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditNote(note);
+                      }}
+                      className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/10 text-blue-400 transition-colors hover:bg-blue-500/20"
+                      title="Editar nota"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteNote(note.id);
+                      }}
+                      className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-500/10 text-rose-400 transition-colors hover:bg-rose-500/20"
+                      title="Excluir nota"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                    <span>{dateLabel}</span>
+                  </div>
                 </div>
               </motion.button>
             );

@@ -130,3 +130,16 @@ export async function fetchNotes(userId: string): Promise<NoteRecord[]> {
     tone: "notes",
   } satisfies NoteRecord));
 }
+
+export async function updateNote(id: number, title: string, body: string): Promise<void> {
+  const { error } = await supabase
+    .from("notas")
+    .update({ titulo: title, conteudo: body })
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteNote(id: number): Promise<void> {
+  const { error } = await supabase.from("notas").delete().eq("id", id);
+  if (error) throw error;
+}
