@@ -18,6 +18,8 @@ import {
   CheckCircle2,
   CalendarDays,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   Check,
   Sparkles,
@@ -35,7 +37,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { MOCK_USERS, type DashboardUser } from "@/lib/supabaseClient";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchTransactions, fetchReminders, fetchNotes, completeReminder, updateNote, deleteNote, type TransactionRecord, type ReminderRecord, type NoteRecord } from "@/services/api";
+import { fetchTransactions, fetchReminders, fetchNotes, completeReminder, updateNote, deleteNote, deleteReminder, type TransactionRecord, type ReminderRecord, type NoteRecord } from "@/services/api";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -280,15 +282,16 @@ const Index = () => {
   const queryClient = useQueryClient();
 
   const { data: transactions = [], isLoading: isLoadingTransactions } = useQuery<TransactionRecord[]>({
-    queryKey: ["transactions", viewDate.getFullYear(), viewDate.getMonth()],
+    queryKey: ["transactions", currentUserId], // Removed date from key to cache globally
     queryFn: () => {
-      const year = viewDate.getFullYear();
-      const month = viewDate.getMonth(); // 0-indexed
-      const start = new Date(year, month, 1);
-      const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
+      // Fetch a wide range to get "all" history for cumulative balance
+      // From 2020 to 2030 should cover most personal use cases
+      const start = new Date(2020, 0, 1);
+      const end = new Date(2030, 11, 31, 23, 59, 59);
       return fetchTransactions(start, end);
     },
     enabled: !!currentUserId,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
   const { data: reminders = [], isLoading: isLoadingReminders } = useQuery<ReminderRecord[]>({
@@ -323,11 +326,30 @@ const Index = () => {
   const filteredTransactions = useMemo(() => {
     if (!currentUserId) return [] as TransactionRecord[];
     const q = notesQuery.toLowerCase().trim();
-    return transactions.filter((tx) => {
+
+    // Filter by Month/Year of viewDate
+    const monthTransactions = transactions.filter((tx) => {
+      const txDate = new Date(tx.date);
+      return (
+        txDate.getMonth() === viewDate.getMonth() &&
+        txDate.getFullYear() === viewDate.getFullYear()
+      );
+    });
+
+    return monthTransactions.filter((tx) => {
       if (!q) return true;
       return tx.title.toLowerCase().includes(q) || tx.category.toLowerCase().includes(q);
     });
-  }, [transactions, notesQuery, currentUserId]);
+  }, [transactions, notesQuery, currentUserId, viewDate]);
+
+  const cumulativeBalance = useMemo(() => {
+    if (!transactions) return 0;
+    const endOfViewMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    return transactions
+      .filter((t) => new Date(t.date) <= endOfViewMonth)
+      .reduce((sum, t) => sum + t.amount, 0);
+  }, [transactions, viewDate]);
 
   const completeReminderMutation = useMutation({
     mutationFn: (id: number) => completeReminder(id),
@@ -348,6 +370,21 @@ const Index = () => {
         );
       },
     });
+  };
+
+  const deleteRemindersMutation = useMutation({
+    mutationFn: (ids: number[]) => Promise.all(ids.map((id) => deleteReminder(id))),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reminders", currentUserId] });
+      toast({ title: "Lembretes excluídos", description: "Os lembretes selecionados foram removidos." });
+    },
+    onError: () => {
+      toast({ title: "Erro", description: "Falha ao excluir lembretes.", variant: "destructive" });
+    },
+  });
+
+  const handleDeleteReminders = (ids: number[]) => {
+    deleteRemindersMutation.mutate(ids);
   };
 
   // Note mutations
@@ -484,7 +521,15 @@ const Index = () => {
               transition={{ duration: 0.25, ease: "easeOut" }}
               className="space-y-4"
             >
-              {activeTab === "finance" && <FinanceTab privacyOn={privacyOn} transactions={filteredTransactions} />}
+              {activeTab === "finance" && (
+                <FinanceTab
+                  privacyOn={privacyOn}
+                  transactions={filteredTransactions}
+                  currentDate={viewDate}
+                  onDateChange={setViewDate}
+                  cumulativeBalance={cumulativeBalance}
+                />
+              )}
               {activeTab === "notes" && (
                 <NotesTab
                   notes={filteredNotes}
@@ -496,7 +541,11 @@ const Index = () => {
                 />
               )}
               {activeTab === "reminders" && (
-                <RemindersTab reminders={filteredReminders} onCompleteReminder={handleCompleteReminder} />
+                <RemindersTab
+                  reminders={filteredReminders}
+                  onCompleteReminder={handleCompleteReminder}
+                  onDeleteReminders={handleDeleteReminders}
+                />
               )}
               {activeTab === "calendar" && (
                 <CalendarTab
@@ -782,13 +831,25 @@ const LandingLogin = ({ onSelectUser }: { onSelectUser: (user: DashboardUser) =>
   );
 };
 
-const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transactions: TransactionRecord[] }) => {
+const FinanceTab = ({
+  privacyOn,
+  transactions,
+  currentDate,
+  onDateChange,
+  cumulativeBalance
+}: {
+  privacyOn: boolean;
+  transactions: TransactionRecord[];
+  currentDate: Date;
+  onDateChange: (date: Date) => void;
+  cumulativeBalance: number;
+}) => {
   const [evolutionFilter, setEvolutionFilter] = useState<"6m" | "month">("6m");
   const evolutionData = evolutionFilter === "6m" ? financeEvolution : financeEvolutionThisMonth;
   const evolutionXKey = evolutionFilter === "6m" ? "month" : "day";
 
   // Aggregate metrics based on the mapped transactions (expenses already negative)
-  const totalBalance = transactions.reduce((sum, tx) => sum + tx.amount, 0);
+  // totalBalance removed in favor of cumulativeBalance passed from parent
   const totalIncome = transactions.filter((tx) => tx.amount > 0).reduce((sum, tx) => sum + tx.amount, 0);
   const totalExpense = transactions.filter((tx) => tx.amount < 0).reduce((sum, tx) => sum + tx.amount, 0);
 
@@ -876,6 +937,33 @@ const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transacti
             Finanças
           </span>
           <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Visão geral</span>
+        </div>
+
+        {/* Month Navigation */}
+        <div className="flex items-center gap-1 bg-card/40 rounded-full border border-border/40 p-0.5 mx-2">
+          <button
+            onClick={() => {
+              const prev = new Date(currentDate);
+              prev.setMonth(prev.getMonth() - 1);
+              onDateChange(prev);
+            }}
+            className="p-1 hover:bg-white/5 rounded-full text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <span className="text-xs font-medium px-2 min-w-[90px] text-center capitalize">
+            {currentDate.toLocaleString("pt-BR", { month: "long", year: "numeric" })}
+          </span>
+          <button
+            onClick={() => {
+              const next = new Date(currentDate);
+              next.setMonth(next.getMonth() + 1);
+              onDateChange(next);
+            }}
+            className="p-1 hover:bg-white/5 rounded-full text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
         <button
           onClick={() => setAiDialogOpen(true)}
@@ -1054,7 +1142,7 @@ const FinanceTab = ({ privacyOn, transactions }: { privacyOn: boolean; transacti
               <p className="text-xs text-muted-foreground">Saldo atual</p>
               <p className="mt-1 text-2xl font-semibold tracking-tight">
                 <span className="bg-gradient-to-r from-[hsl(var(--finance-gradient-start))] to-[hsl(var(--finance-gradient-end))] bg-clip-text text-transparent">
-                  {formatCurrency(totalBalance)}
+                  {formatCurrency(cumulativeBalance)}
                 </span>
               </p>
             </div>
@@ -1494,7 +1582,7 @@ const NotesTab = ({ notes, query, onQueryChange, onOpenNote, onEditNote, onDelet
           </p>
         </div>
       ) : (
-        <div className="columns-2 gap-4 [column-fill:_balance]">
+        <div className="columns-1 md:columns-2 gap-4 [column-fill:_balance]">
           {notes.map((note) => {
             const createdAt = new Date(note.date);
             const now = new Date();
@@ -1517,7 +1605,7 @@ const NotesTab = ({ notes, query, onQueryChange, onOpenNote, onEditNote, onDelet
                 whileTap={{ scale: 0.98 }}
               >
                 <div className="flex items-start justify-between gap-4">
-                  <h3 className="line-clamp-4 flex-1 text-[15px] font-bold leading-tight tracking-tight text-foreground/90">{note.title}</h3>
+                  <h3 className="line-clamp-4 flex-1 text-[15px] font-bold leading-normal text-foreground/90">{note.title}</h3>
                   <button
                     type="button"
                     onClick={(event) => toggleChecklist(note, event)}
@@ -1597,18 +1685,59 @@ const NotesTab = ({ notes, query, onQueryChange, onOpenNote, onEditNote, onDelet
   );
 };
 
-const RemindersTab = ({ reminders, onCompleteReminder }: { reminders: ReminderRecord[]; onCompleteReminder: (id: number) => void }) => {
+const RemindersTab = ({
+  reminders,
+  onCompleteReminder,
+  onDeleteReminders
+}: {
+  reminders: ReminderRecord[];
+  onCompleteReminder: (id: number) => void;
+  onDeleteReminders: (ids: number[]) => void;
+}) => {
   const items = reminders;
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   const handleComplete = (id: number) => {
+    if (selectionMode) return;
     onCompleteReminder(id);
+  };
+
+  const toggleSelection = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const executeDelete = () => {
+    if (selectedIds.length === 0) return;
+    onDeleteReminders(selectedIds);
+    setSelectionMode(false);
+    setSelectedIds([]);
   };
 
   return (
     <section className="space-y-3">
-      <div className="flex items-center gap-2">
-        <span className="tag-pill bg-[hsl(var(--reminders-accent))]/20 text-xs">Lembretes</span>
-        <span className="text-[11px] text-muted-foreground">Lista de tarefas do dia</span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="tag-pill bg-[hsl(var(--reminders-accent))]/20 text-xs">Lembretes</span>
+          <span className="text-[11px] text-muted-foreground">Lista de tarefas do dia</span>
+        </div>
+        <button
+          onClick={() => {
+            setSelectionMode(!selectionMode);
+            setSelectedIds([]);
+          }}
+          className={cn(
+            "flex h-8 w-8 items-center justify-center rounded-full transition-colors",
+            selectionMode
+              ? "bg-rose-500/10 text-rose-500 hover:bg-rose-500/20"
+              : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+          )}
+          title={selectionMode ? "Cancelar seleção" : "Excluir lembretes"}
+        >
+          {selectionMode ? <CloseIcon className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
+        </button>
       </div>
 
       {items.length === 0 ? (
@@ -1620,46 +1749,90 @@ const RemindersTab = ({ reminders, onCompleteReminder }: { reminders: ReminderRe
         </div>
       ) : (
         <div className="flex flex-col space-y-3">
-          {items.map((rem) => (
-            <div
-              key={rem.id}
-              className="group flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4 text-xs shadow-sm backdrop-blur-md transition-all hover:bg-white/10"
-            >
-              <div className="flex items-center gap-4">
-                {/* Interactive Checkbox */}
-                <button
-                  type="button"
-                  onClick={() => handleComplete(rem.id)}
-                  className={cn(
-                    "flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all",
-                    rem.status === "done"
-                      ? "border-emerald-500 bg-emerald-500 text-white"
-                      : "border-[hsl(var(--reminders-accent))] text-transparent hover:bg-[hsl(var(--reminders-accent))/0.1]",
+          {items.map((rem) => {
+            const isSelected = selectedIds.includes(rem.id);
+            return (
+              <div
+                key={rem.id}
+                className={cn(
+                  "group flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-4 text-xs shadow-sm backdrop-blur-md transition-all hover:bg-white/10",
+                  selectionMode && "cursor-pointer",
+                  isSelected && "border-rose-500/30 bg-rose-500/5"
+                )}
+                onClick={() => selectionMode && toggleSelection(rem.id)}
+              >
+                <div className="flex items-center gap-4">
+                  {/* Selection Checkbox or Status */}
+                  {selectionMode ? (
+                    <div className={cn(
+                      "flex h-6 w-6 items-center justify-center rounded-md border-2 transition-all",
+                      isSelected ? "border-rose-500 bg-rose-500 text-white" : "border-muted-foreground/40 bg-transparent"
+                    )}>
+                      {isSelected && <Check size={14} strokeWidth={3} />}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleComplete(rem.id);
+                      }}
+                      className={cn(
+                        "flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all",
+                        rem.status === "done"
+                          ? "border-emerald-500 bg-emerald-500 text-white"
+                          : "border-[hsl(var(--reminders-accent))] text-transparent hover:bg-[hsl(var(--reminders-accent))/0.1]",
+                      )}
+                    >
+                      {rem.status === "done" && <Check size={14} strokeWidth={3} />}
+                    </button>
                   )}
-                >
-                  {rem.status === "done" && <Check size={14} strokeWidth={3} />}
-                </button>
 
-                {/* Text Content */}
-                <div className="flex flex-col">
-                  <span
-                    className={cn(
-                      "text-sm font-medium",
-                      rem.status === "done" ? "text-white/30 line-through" : "text-foreground",
-                    )}
-                  >
-                    {rem.title}
-                  </span>
-                  {rem.timeLabel && (
-                    <span className="text-[11px] font-bold text-[hsl(var(--reminders-accent))]">
-                      {rem.timeLabel}
+                  {/* Text Content */}
+                  <div className="flex flex-col">
+                    <span
+                      className={cn(
+                        "text-sm font-medium transition-colors",
+                        rem.status === "done" && !selectionMode ? "text-white/30 line-through" : "text-foreground",
+                        isSelected && "text-rose-200"
+                      )}
+                    >
+                      {rem.title}
                     </span>
-                  )}
+                    {rem.timeLabel && (
+                      <span className={cn(
+                        "text-[11px] font-bold",
+                        isSelected ? "text-rose-300/70" : "text-[hsl(var(--reminders-accent))]"
+                      )}>
+                        {rem.timeLabel}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
+      )}
+
+      {/* Bulk Delete Action Bar */}
+      {selectionMode && selectedIds.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 glass-card px-6 py-3 rounded-full border border-rose-500/20 bg-background/80 shadow-2xl flex items-center gap-4"
+        >
+          <span className="text-xs font-medium">{selectedIds.length} selecionado(s)</span>
+          <div className="h-4 w-px bg-border/60" />
+          <button
+            onClick={executeDelete}
+            className="text-xs font-bold text-rose-500 hover:text-rose-400 flex items-center gap-2"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Excluir
+          </button>
+        </motion.div>
       )}
     </section>
   );

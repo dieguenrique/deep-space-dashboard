@@ -143,3 +143,8 @@ export async function deleteNote(id: number): Promise<void> {
   const { error } = await supabase.from("notas").delete().eq("id", id);
   if (error) throw error;
 }
+
+export async function deleteReminder(id: number): Promise<void> {
+  const { error } = await supabase.from("lembretes").delete().eq("id", id);
+  if (error) throw error;
+}
