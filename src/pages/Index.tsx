@@ -29,12 +29,13 @@ import {
   AlertCircle,
   Trash2,
   Edit3,
+  LogOut,
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { MOCK_USERS, type DashboardUser } from "@/lib/supabaseClient";
+import { type Cliente, getStoredCliente, storeCliente, clearCliente, requestCode, validateCode } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchTransactions, fetchReminders, fetchNotes, completeReminder, updateNote, deleteNote, deleteReminder, type TransactionRecord, type ReminderRecord, type NoteRecord } from "@/services/api";
@@ -229,7 +230,7 @@ type TabKey = (typeof bottomDockItems)[number]["key"];
 const getDateKey = (date: Date) => date.toISOString().slice(0, 10);
 
 const Index = () => {
-  const [selectedUser, setSelectedUser] = useState<DashboardUser | null>(null);
+  const [selectedUser, setSelectedUser] = useState<Cliente | null>(null);
   const [bootstrappedUser, setBootstrappedUser] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("finance");
   const [privacyOn, setPrivacyOn] = useState(false);
@@ -246,12 +247,9 @@ const Index = () => {
 
   useEffect(() => {
     try {
-      const storedId = window.localStorage.getItem("app_user_id");
-      if (storedId) {
-        const user = MOCK_USERS.find((u) => String(u.id) === storedId);
-        if (user) {
-          setSelectedUser(user);
-        }
+      const stored = getStoredCliente();
+      if (stored) {
+        setSelectedUser(stored);
       }
     } catch (error) {
       console.error("Failed to read stored user from localStorage", error);
@@ -260,25 +258,16 @@ const Index = () => {
     }
   }, []);
 
-  const handleSelectUser = (user: DashboardUser) => {
-    try {
-      window.localStorage.setItem("app_user_id", String(user.id));
-    } catch (error) {
-      console.error("Failed to persist user to localStorage", error);
-    }
-    setSelectedUser(user);
+  const handleLogin = (cliente: Cliente) => {
+    setSelectedUser(cliente);
   };
 
-  const handleSwitchUser = () => {
-    try {
-      window.localStorage.removeItem("app_user_id");
-    } catch (error) {
-      console.error("Failed to clear stored user from localStorage", error);
-    }
+  const handleLogout = () => {
+    clearCliente();
     setSelectedUser(null);
   };
 
-  const currentUserId = selectedUser?.id ?? null;
+  const currentUserId = selectedUser?.whatsapp ?? null;
   const queryClient = useQueryClient();
 
   const { data: transactions = [], isLoading: isLoadingTransactions } = useQuery<TransactionRecord[]>({
@@ -288,7 +277,7 @@ const Index = () => {
       // From 2020 to 2030 should cover most personal use cases
       const start = new Date(2020, 0, 1);
       const end = new Date(2030, 11, 31, 23, 59, 59);
-      return fetchTransactions(start, end);
+      return fetchTransactions(start, end, currentUserId!);
     },
     enabled: !!currentUserId,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
@@ -469,7 +458,7 @@ const Index = () => {
     );
   };
 
-  const greet = selectedUser ? `Bom dia, ${selectedUser.name}!` : "Bom dia";
+  const greet = selectedUser ? `Bom dia, ${selectedUser.nome}!` : "Bom dia";
 
   return (
     <div className="relative min-h-screen overflow-x-hidden overflow-y-auto">
@@ -485,7 +474,7 @@ const Index = () => {
           <p className="text-xs text-muted-foreground">Carregando cockpit...</p>
         </div>
       ) : !selectedUser ? (
-        <LandingLogin onSelectUser={handleSelectUser} />
+        <WhatsAppLogin onLogin={handleLogin} />
       ) : (
         <motion.main
           className="mx-auto flex min-h-screen max-w-5xl flex-col px-4 pb-24 pt-6 md:px-6 md:pb-10"
@@ -506,6 +495,14 @@ const Index = () => {
               >
                 {privacyOn ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                 <span>{privacyOn ? "Ocultar valores" : "Mostrar valores"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex items-center gap-1 rounded-full bg-card/70 px-3 py-1 text-xs text-muted-foreground border border-border/60 backdrop-blur-md hover:bg-card/90 transition-colors"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span>Sair</span>
               </button>
             </div>
           </header>
@@ -774,58 +771,139 @@ const Index = () => {
 
 export { Index };
 
-const LandingLogin = ({ onSelectUser }: { onSelectUser: (user: DashboardUser) => void }) => {
+const WhatsAppLogin = ({ onLogin }: { onLogin: (cliente: Cliente) => void }) => {
+  const [step, setStep] = useState<"phone" | "code" | "loading">("phone");
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+
+  const handleRequestCode = async () => {
+    setError("");
+    const cleaned = phone.replace(/\D/g, "");
+    if (cleaned.length < 9) {
+      setError("Número inválido");
+      return;
+    }
+    setStep("loading");
+    try {
+      const result = await requestCode(cleaned);
+      if (result.success) {
+        setStep("code");
+      } else {
+        setError(result.error === "not_found" ? "Número não registrado" : "Erro ao enviar código");
+        setStep("phone");
+      }
+    } catch {
+      setError("Erro de conexão");
+      setStep("phone");
+    }
+  };
+
+  const handleValidateCode = async () => {
+    setError("");
+    const cleaned = phone.replace(/\D/g, "");
+    setStep("loading");
+    try {
+      const result = await validateCode(cleaned, code);
+      if (result.success && result.cliente) {
+        storeCliente(result.cliente);
+        onLogin(result.cliente);
+      } else {
+        setError(result.error === "invalid_code" ? "Código inválido ou expirado" : "Erro ao validar");
+        setStep("code");
+      }
+    } catch {
+      setError("Erro de conexão");
+      setStep("code");
+    }
+  };
+
   return (
     <div className="relative flex min-h-screen items-center justify-center px-4">
       <div className="absolute inset-x-0 top-10 flex justify-center">
         <div className="rounded-full border border-border/60 bg-card/60 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground backdrop-blur-md shadow-sm">
-          Deep Space · Personal OS
+          Vectra Finance
         </div>
       </div>
 
       <motion.div
-        className="glass-card relative z-10 flex w-full max-w-xl flex-col gap-6 rounded-3xl px-6 py-7 md:px-8 md:py-8"
+        className="glass-card relative z-10 flex w-full max-w-md flex-col gap-6 rounded-3xl px-6 py-7 md:px-8 md:py-8"
         initial={{ opacity: 0, y: 16, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Entre no seu cockpit financeiro</h1>
+        <div className="space-y-1 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight">Bem-vindo à Vectra</h1>
           <p className="text-sm text-muted-foreground">
-            Escolha um perfil para carregar finanças, notas e lembretes em um só lugar.
+            {step === "code"
+              ? "Digite o código enviado ao seu WhatsApp"
+              : "Insira o seu número de WhatsApp para entrar"}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {MOCK_USERS.map((user, index) => (
+        {error && (
+          <motion.div
+            className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2.5 text-center text-sm text-rose-300"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            {error}
+          </motion.div>
+        )}
+
+        {step === "loading" ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
+        ) : step === "phone" ? (
+          <div className="flex flex-col gap-4">
+            <input
+              type="tel"
+              placeholder="351XXXXXXXXX"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full rounded-xl border border-border/70 bg-card/80 px-4 py-3 text-center text-lg tracking-widest backdrop-blur-md placeholder:text-muted-foreground/50 focus:border-primary/70 focus:outline-none"
+              autoFocus
+            />
             <motion.button
-              key={user.id}
               type="button"
-              onClick={() => onSelectUser(user)}
-              className="group relative flex flex-col items-start gap-3 rounded-2xl border border-border/70 bg-card/80 px-4 py-4 text-left backdrop-blur-md transition-colors hover:border-primary/70"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 + index * 0.05, duration: 0.4, ease: "easeOut" }}
+              onClick={handleRequestCode}
+              className="rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               whileTap={{ scale: 0.97 }}
             >
-              <div className="flex items-center gap-3">
-                <div className="relative h-9 w-9 overflow-hidden rounded-2xl bg-gradient-to-br from-primary/70 via-accent/70 to-primary/40">
-                  <div className="absolute inset-[2px] rounded-2xl bg-background/20" />
-                  <span className="relative flex h-full w-full items-center justify-center text-xs font-semibold">
-                    {user.name[0]}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium leading-tight">{user.name}</p>
-                  <p className="text-[11px] text-muted-foreground">Usuário #{user.id}</p>
-                </div>
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                Toque para abrir o painel pessoal com finanças em tempo real, notas rápidas e lembretes.
-              </p>
+              Enviar código por WhatsApp
             </motion.button>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={4}
+              placeholder="0000"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              className="w-full rounded-xl border border-border/70 bg-card/80 px-4 py-3 text-center text-2xl font-bold tracking-[0.5em] backdrop-blur-md placeholder:text-muted-foreground/50 focus:border-primary/70 focus:outline-none"
+              autoFocus
+            />
+            <motion.button
+              type="button"
+              onClick={handleValidateCode}
+              disabled={code.length < 4}
+              className="rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              whileTap={{ scale: 0.97 }}
+            >
+              Verificar
+            </motion.button>
+            <button
+              type="button"
+              onClick={() => { setStep("phone"); setCode(""); setError(""); }}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Usar outro número
+            </button>
+          </div>
+        )}
       </motion.div>
     </div>
   );
@@ -853,8 +931,6 @@ const FinanceTab = ({
   const totalIncome = transactions.filter((tx) => tx.amount > 0).reduce((sum, tx) => sum + tx.amount, 0);
   const totalExpense = transactions.filter((tx) => tx.amount < 0).reduce((sum, tx) => sum + tx.amount, 0);
 
-  const [openIncomeByUser, setOpenIncomeByUser] = useState<Record<string, boolean>>({});
-  const [openExpenseByUser, setOpenExpenseByUser] = useState<Record<string, boolean>>({});
 
   const formatCurrency = (value: number) => (privacyOn ? "•••••" : currencyFormatter.format(value));
 
@@ -1213,151 +1289,6 @@ const FinanceTab = ({
             </p>
           </div>
         </motion.div>
-      </div>
-
-      {/* Análise por Pessoa */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {[
-          { id: "351932966990", name: "Ana Luiza", initial: "AN", badgeClass: "bg-sky-500/15 text-sky-300" },
-          { id: "351929426244", name: "Diego", initial: "DI", badgeClass: "bg-indigo-500/15 text-indigo-300" },
-        ].map((user) => {
-          const userTxs = transactions.filter((t) => t.responsavel === user.id || (t as any).userId === user.id);
-          const income = userTxs.filter((t) => t.amount > 0).reduce((acc, t) => acc + t.amount, 0);
-          const expense = userTxs.filter((t) => t.amount < 0).reduce((acc, t) => acc + t.amount, 0);
-          const balance = income + expense;
-
-          return (
-            <motion.div
-              key={user.id}
-              className="glass-card aura-card rounded-2xl p-5"
-              variants={cardHover}
-              initial="rest"
-              whileHover="hover"
-            >
-              <div className="mb-4 flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={cn("flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold", user.badgeClass)}>
-                    {user.initial}
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground">{user.name}</h3>
-                    <p className={cn("text-xs font-mono", balance >= 0 ? "text-emerald-400" : "text-rose-400")}
-                    >
-                      {privacyOn ? "•••••" : `${balance >= 0 ? "+" : ""}${currencyFormatter.format(balance)}`}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                {/* Income box */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setOpenIncomeByUser((prev) => ({ ...prev, [user.id]: !prev[user.id] }))
-                  }
-                  className="group cursor-pointer rounded-xl border border-emerald-500/10 bg-emerald-500/5 p-3 text-left transition-colors hover:bg-emerald-500/10"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-400">
-                      Entrou
-                    </span>
-                    <ChevronDown
-                      className={cn(
-                        "h-3 w-3 text-emerald-400 transition-transform",
-                        openIncomeByUser[user.id] && "rotate-180",
-                      )}
-                    />
-                  </div>
-                  <p className="mt-1 text-sm font-bold text-emerald-300">
-                    {privacyOn ? "•••••" : currencyFormatter.format(income)}
-                  </p>
-                  {openIncomeByUser[user.id] && (
-                    <div className="mt-2 max-h-44 space-y-1.5 overflow-y-auto pr-1 no-scrollbar">
-                      {userTxs
-                        .filter((t) => t.amount > 0)
-                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                        .slice(0, 10)
-                        .map((t) => {
-                          const Icon = getCategoryIcon(t.category);
-                          return (
-                            <div
-                              key={t.id}
-                              className="flex items-center justify-between gap-2 text-[11px] text-emerald-300"
-                            >
-                              <div className="flex items-center gap-1.5">
-                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10">
-                                  <Icon className="h-3 w-3" />
-                                </span>
-                                <span className="line-clamp-1">{t.title}</span>
-                              </div>
-                              <span className="font-semibold">
-                                {privacyOn
-                                  ? "•••••"
-                                  : `+ ${currencyFormatter.format(Math.abs(t.amount))}`}
-                              </span>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
-                </button>
-
-                {/* Expense box */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setOpenExpenseByUser((prev) => ({ ...prev, [user.id]: !prev[user.id] }))
-                  }
-                  className="group cursor-pointer rounded-xl border border-rose-500/10 bg-rose-500/5 p-3 text-left transition-colors hover:bg-rose-500/10"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-400">
-                      Saiu
-                    </span>
-                    <ChevronDown
-                      className={cn(
-                        "h-3 w-3 text-rose-400 transition-transform",
-                        openExpenseByUser[user.id] && "rotate-180",
-                      )}
-                    />
-                  </div>
-                  <p className="mt-1 text-sm font-bold text-rose-300">
-                    {privacyOn ? "•••••" : currencyFormatter.format(Math.abs(expense))}
-                  </p>
-                  {openExpenseByUser[user.id] && (
-                    <div className="mt-2 max-h-44 space-y-1.5 overflow-y-auto pr-1 no-scrollbar">
-                      {userTxs
-                        .filter((t) => t.amount < 0)
-                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                        .slice(0, 10)
-                        .map((t) => {
-                          const Icon = getCategoryIcon(t.category);
-                          return (
-                            <div
-                              key={t.id}
-                              className="flex items-center justify-between gap-2 text-[11px] text-rose-300"
-                            >
-                              <div className="flex items-center gap-1.5">
-                                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-500/10">
-                                  <Icon className="h-3 w-3" />
-                                </span>
-                                <span className="line-clamp-1">{t.title}</span>
-                              </div>
-                              <span className="font-semibold">
-                                {privacyOn
-                                  ? "•••••"
-                                  : `- ${currencyFormatter.format(Math.abs(t.amount))}`}
-                              </span>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          );
-        })}
       </div>
 
       <div className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">

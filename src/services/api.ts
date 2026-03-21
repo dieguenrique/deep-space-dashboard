@@ -40,10 +40,11 @@ function toTimeLabel(dateTime: string | null): string {
   return d.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" });
 }
 
-export async function fetchTransactions(startDate: Date, endDate: Date): Promise<TransactionRecord[]> {
+export async function fetchTransactions(startDate: Date, endDate: Date, userId: string): Promise<TransactionRecord[]> {
   const { data, error } = await supabase
     .from("financeiro_registros")
     .select("id, data_hora, valor, categoria, tipo, descricao, responsavel")
+    .eq("responsavel", userId)
     .gte("data_hora", startDate.toISOString())
     .lte("data_hora", endDate.toISOString())
     .order("data_hora", { ascending: true });
