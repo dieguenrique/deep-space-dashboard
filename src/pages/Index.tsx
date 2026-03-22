@@ -1007,48 +1007,53 @@ const FinanceTab = ({
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="tag-pill bg-gradient-to-r from-[hsl(var(--finance-gradient-start))]/20 to-[hsl(var(--finance-gradient-end))]/20 text-xs text-primary font-bold">
-            Finanças
-          </span>
-          <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Visão geral</span>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="tag-pill bg-gradient-to-r from-[hsl(var(--finance-gradient-start))]/20 to-[hsl(var(--finance-gradient-end))]/20 text-xs text-primary font-bold">
+              Finanças
+            </span>
+            <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider hidden md:inline">Visão geral</span>
+          </div>
+
+          <button
+            onClick={() => setAiDialogOpen(true)}
+            className="group relative flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-bold text-primary transition-all hover:bg-primary/20 hover:border-primary/50 shrink-0"
+          >
+            <Sparkles className="h-3.5 w-3.5 animate-pulse" />
+            <span>Consultar IA</span>
+            <div className="absolute -inset-[1px] -z-10 rounded-full bg-gradient-to-r from-primary/40 to-accent/40 opacity-0 blur-sm transition-opacity group-hover:opacity-100" />
+          </button>
         </div>
 
         {/* Month Navigation */}
-        <div className="flex items-center gap-1 bg-card/40 rounded-full border border-border/40 p-0.5 mx-2">
-          <button
-            onClick={() => {
-              const prev = new Date(currentDate);
-              prev.setMonth(prev.getMonth() - 1);
-              onDateChange(prev);
-            }}
-            className="p-1 hover:bg-white/5 rounded-full text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <span className="text-xs font-medium px-2 min-w-[90px] text-center capitalize">
-            {currentDate.toLocaleString("pt-BR", { month: "long", year: "numeric" })}
-          </span>
-          <button
-            onClick={() => {
-              const next = new Date(currentDate);
-              next.setMonth(next.getMonth() + 1);
-              onDateChange(next);
-            }}
-            className="p-1 hover:bg-white/5 rounded-full text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+        <div className="flex items-center justify-center">
+          <div className="flex items-center gap-1 bg-card/40 rounded-full border border-border/40 p-0.5">
+            <button
+              onClick={() => {
+                const prev = new Date(currentDate);
+                prev.setMonth(prev.getMonth() - 1);
+                onDateChange(prev);
+              }}
+              className="p-1.5 hover:bg-white/5 rounded-full text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-xs font-medium px-3 min-w-[110px] text-center capitalize">
+              {currentDate.toLocaleString("pt-BR", { month: "long", year: "numeric" })}
+            </span>
+            <button
+              onClick={() => {
+                const next = new Date(currentDate);
+                next.setMonth(next.getMonth() + 1);
+                onDateChange(next);
+              }}
+              className="p-1.5 hover:bg-white/5 rounded-full text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-        <button
-          onClick={() => setAiDialogOpen(true)}
-          className="group relative flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-bold text-primary transition-all hover:bg-primary/20 hover:border-primary/50"
-        >
-          <Sparkles className="h-3.5 w-3.5 animate-pulse" />
-          <span>Consultar IA</span>
-          <div className="absolute -inset-[1px] -z-10 rounded-full bg-gradient-to-r from-primary/40 to-accent/40 opacity-0 blur-sm transition-opacity group-hover:opacity-100" />
-        </button>
       </div>
 
 
@@ -1206,9 +1211,10 @@ const FinanceTab = ({
       </Dialog>
 
       {/* KPI cards */}
-      <div className="no-scrollbar -mx-2 flex gap-3 overflow-x-auto px-2 pb-1">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Saldo card */}
         <motion.div
-          className="glass-card aura-card min-w-[72%] max-w-sm flex-1 rounded-2xl p-4"
+          className="glass-card aura-card rounded-2xl p-4"
           variants={cardHover}
           initial="rest"
           whileHover="hover"
@@ -1232,14 +1238,15 @@ const FinanceTab = ({
           </div>
         </motion.div>
 
+        {/* Receitas vs despesas */}
         <motion.div
-          className="glass-card aura-card min-w-[60%] max-w-xs flex-1 rounded-2xl p-4"
+          className="glass-card aura-card rounded-2xl p-4"
           variants={cardHover}
           initial="rest"
           whileHover="hover"
         >
           <div className="flex items-center justify-between gap-3">
-            <div className="space-y-1">
+            <div className="space-y-1 flex-1">
               <p className="text-xs text-muted-foreground">Receitas vs despesas</p>
               <div className="flex items-baseline gap-2 text-xs">
                 <span className="inline-flex items-center gap-1 text-emerald-500">
@@ -1266,32 +1273,49 @@ const FinanceTab = ({
                 </div>
               </div>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-400">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-400">
               <PiggyBank className="h-4 w-4" />
             </div>
           </div>
         </motion.div>
 
+        {/* Taxa de economia */}
         <motion.div
-          className="glass-card aura-card min-w-[60%] max-w-xs flex-1 rounded-2xl p-4"
+          className="glass-card aura-card rounded-2xl p-4"
           variants={cardHover}
           initial="rest"
           whileHover="hover"
         >
-          <p className="text-xs text-muted-foreground">Taxa de economia</p>
-          <div className="mt-2 flex items-center gap-3">
-            <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-400/30 via-primary/25 to-emerald-300/30">
-              <div className="absolute inset-[3px] rounded-full bg-background" />
-              <span className="relative text-sm font-semibold">36%</span>
+          <p className="text-xs text-muted-foreground mb-3">Taxa de economia</p>
+          <div className="flex items-center gap-4">
+            <div className="relative flex h-16 w-16 shrink-0 items-center justify-center">
+              <svg className="h-16 w-16 -rotate-90" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="28" fill="none" stroke="hsl(222 30% 18%)" strokeWidth="5" />
+                <circle
+                  cx="32" cy="32" r="28"
+                  fill="none"
+                  stroke="url(#savingsGrad)"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  strokeDasharray={`${0.36 * 2 * Math.PI * 28} ${2 * Math.PI * 28}`}
+                />
+                <defs>
+                  <linearGradient id="savingsGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="hsl(155 78% 55%)" />
+                    <stop offset="100%" stopColor="hsl(222 88% 64%)" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <span className="absolute text-base font-bold text-foreground">36%</span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Você está acima de 82% dos usuários com o mesmo perfil de renda.
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Você está acima de <span className="text-emerald-400 font-semibold">82%</span> dos usuários com o mesmo perfil de renda.
             </p>
           </div>
         </motion.div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-[minmax(0,2fr)_minmax(0,1.2fr)]">
         <motion.div className="glass-card aura-card rounded-2xl p-4" variants={cardHover} initial="rest" whileHover="hover">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Evolução</p>
