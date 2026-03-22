@@ -35,7 +35,7 @@ import { Area, AreaChart, CartesianGrid, Radar, RadarChart, PolarGrid, PolarAngl
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { type Cliente, getStoredCliente, storeCliente, clearCliente, requestCode, validateCode } from "@/lib/auth";
+import { type Cliente, getStoredCliente, storeCliente, clearCliente, requestCode, validateCode, restoreSession } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchTransactions, fetchReminders, fetchNotes, completeReminder, updateNote, deleteNote, deleteReminder, type TransactionRecord, type ReminderRecord, type NoteRecord } from "@/services/api";
@@ -250,6 +250,8 @@ const Index = () => {
       const stored = getStoredCliente();
       if (stored) {
         setSelectedUser(stored);
+        // Try to restore Supabase Auth session
+        restoreSession().catch(() => {});
       }
     } catch (error) {
       console.error("Failed to read stored user from localStorage", error);
@@ -262,8 +264,8 @@ const Index = () => {
     setSelectedUser(cliente);
   };
 
-  const handleLogout = () => {
-    clearCliente();
+  const handleLogout = async () => {
+    await clearCliente();
     setSelectedUser(null);
   };
 
