@@ -30,6 +30,7 @@ import {
   Trash2,
   Edit3,
   LogOut,
+  Download,
 } from "lucide-react";
 import { Area, AreaChart, CartesianGrid, Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -774,10 +775,31 @@ const Index = () => {
 export { Index };
 
 const WhatsAppLogin = ({ onLogin }: { onLogin: (cliente: Cliente) => void }) => {
-  const [step, setStep] = useState<"phone" | "code" | "loading">("phone");
+  const [step, setStep] = useState<"phone" | "code" | "loading" | "install">("phone");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
+  const [pendingCliente, setPendingCliente] = useState<Cliente | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [installing, setInstalling] = useState(false);
+
+  // Detect if already running as installed PWA
+  const isStandalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as any).standalone === true;
+
+  // Detect iOS
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+
+  // Capture the beforeinstallprompt event (Android/Chrome)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
 
   const handleRequestCode = async () => {
     setError("");
@@ -809,7 +831,13 @@ const WhatsAppLogin = ({ onLogin }: { onLogin: (cliente: Cliente) => void }) => 
       const result = await validateCode(cleaned, code);
       if (result.success && result.cliente) {
         storeCliente(result.cliente);
-        onLogin(result.cliente);
+        // If already installed as PWA, skip install step
+        if (isStandalone) {
+          onLogin(result.cliente);
+        } else {
+          setPendingCliente(result.cliente);
+          setStep("install");
+        }
       } else {
         setError(result.error === "invalid_code" ? "Código inválido ou expirado" : "Erro ao validar");
         setStep("code");
@@ -818,6 +846,33 @@ const WhatsAppLogin = ({ onLogin }: { onLogin: (cliente: Cliente) => void }) => 
       setError("Erro de conexão");
       setStep("code");
     }
+  };
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      setInstalling(true);
+      try {
+        deferredPrompt.prompt();
+        const result = await deferredPrompt.userChoice;
+        setDeferredPrompt(null);
+        if (result.outcome === "accepted") {
+          // Small delay so the PWA transition feels smooth
+          setTimeout(() => {
+            if (pendingCliente) onLogin(pendingCliente);
+          }, 800);
+          return;
+        }
+      } catch {
+        // prompt failed, continue to dashboard
+      }
+      setInstalling(false);
+    }
+    // If no prompt available or user dismissed, continue anyway
+    if (pendingCliente) onLogin(pendingCliente);
+  };
+
+  const handleSkipInstall = () => {
+    if (pendingCliente) onLogin(pendingCliente);
   };
 
   return (
@@ -833,78 +888,170 @@ const WhatsAppLogin = ({ onLogin }: { onLogin: (cliente: Cliente) => void }) => 
         initial={{ opacity: 0, y: 16, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
+        key={step}
       >
-        <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight">Bem-vindo à Vectra</h1>
-          <p className="text-sm text-muted-foreground">
-            {step === "code"
-              ? "Digite o código enviado ao seu WhatsApp"
-              : "Insira o seu número de WhatsApp para entrar"}
-          </p>
-        </div>
+        {step === "install" ? (
+          <>
+            <div className="space-y-1 text-center">
+              <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/15 text-primary">
+                <Download className="h-8 w-8" />
+              </div>
+              <h1 className="text-2xl font-semibold tracking-tight">Instalar Vectra</h1>
+              <p className="text-sm text-muted-foreground">
+                Instale o app no seu telemóvel para acesso rápido e experiência completa
+              </p>
+            </div>
 
-        {error && (
-          <motion.div
-            className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2.5 text-center text-sm text-rose-300"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            {error}
-          </motion.div>
-        )}
+            <div className="space-y-3">
+              {isIOS ? (
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-border/60 bg-card/50 p-4 space-y-3">
+                    <p className="text-xs font-bold uppercase tracking-wider text-primary">Como instalar no iPhone</p>
+                    <div className="space-y-2.5">
+                      <div className="flex items-start gap-3">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">1</span>
+                        <p className="text-sm text-muted-foreground">Toque no ícone <span className="inline-flex items-center gap-1 font-medium text-foreground">Partilhar <ArrowUpRight className="inline h-3.5 w-3.5" /></span> na barra do Safari</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">2</span>
+                        <p className="text-sm text-muted-foreground">Selecione <span className="font-medium text-foreground">"Adicionar ao Ecrã principal"</span></p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">3</span>
+                        <p className="text-sm text-muted-foreground">Toque <span className="font-medium text-foreground">"Adicionar"</span> para confirmar</p>
+                      </div>
+                    </div>
+                  </div>
+                  <motion.button
+                    type="button"
+                    onClick={handleSkipInstall}
+                    className="w-full rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                    whileTap={{ scale: 0.97 }}
+                  >
+                    Já instalei, continuar
+                  </motion.button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <motion.button
+                    type="button"
+                    onClick={handleInstallClick}
+                    disabled={installing}
+                    className="w-full rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-70 flex items-center justify-center gap-2"
+                    whileTap={{ scale: 0.97 }}
+                  >
+                    {installing ? (
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        Instalar aplicação
+                      </>
+                    )}
+                  </motion.button>
 
-        {step === "loading" ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          </div>
-        ) : step === "phone" ? (
-          <div className="flex flex-col gap-4">
-            <input
-              type="tel"
-              placeholder="351XXXXXXXXX"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full rounded-xl border border-border/70 bg-card/80 px-4 py-3 text-center text-lg tracking-widest backdrop-blur-md placeholder:text-muted-foreground/50 focus:border-primary/70 focus:outline-none"
-              autoFocus
-            />
-            <motion.button
-              type="button"
-              onClick={handleRequestCode}
-              className="rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-              whileTap={{ scale: 0.97 }}
-            >
-              Enviar código por WhatsApp
-            </motion.button>
-          </div>
+                  {!deferredPrompt && (
+                    <div className="rounded-2xl border border-border/60 bg-card/50 p-4 space-y-3">
+                      <p className="text-xs font-bold uppercase tracking-wider text-primary">Instalação manual</p>
+                      <div className="space-y-2.5">
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">1</span>
+                          <p className="text-sm text-muted-foreground">Toque no menu <span className="font-medium text-foreground">(3 pontos)</span> do navegador</p>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">2</span>
+                          <p className="text-sm text-muted-foreground">Selecione <span className="font-medium text-foreground">"Instalar aplicação"</span> ou <span className="font-medium text-foreground">"Adicionar ao ecrã inicial"</span></p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleSkipInstall}
+                className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors pt-1"
+              >
+                Continuar sem instalar
+              </button>
+            </div>
+          </>
         ) : (
-          <div className="flex flex-col gap-4">
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={4}
-              placeholder="0000"
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              className="w-full rounded-xl border border-border/70 bg-card/80 px-4 py-3 text-center text-2xl font-bold tracking-[0.5em] backdrop-blur-md placeholder:text-muted-foreground/50 focus:border-primary/70 focus:outline-none"
-              autoFocus
-            />
-            <motion.button
-              type="button"
-              onClick={handleValidateCode}
-              disabled={code.length < 4}
-              className="rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-              whileTap={{ scale: 0.97 }}
-            >
-              Verificar
-            </motion.button>
-            <button
-              type="button"
-              onClick={() => { setStep("phone"); setCode(""); setError(""); }}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Usar outro número
-            </button>
-          </div>
+          <>
+            <div className="space-y-1 text-center">
+              <h1 className="text-2xl font-semibold tracking-tight">Bem-vindo à Vectra</h1>
+              <p className="text-sm text-muted-foreground">
+                {step === "code"
+                  ? "Digite o código enviado ao seu WhatsApp"
+                  : "Insira o seu número de WhatsApp para entrar"}
+              </p>
+            </div>
+
+            {error && (
+              <motion.div
+                className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2.5 text-center text-sm text-rose-300"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                {error}
+              </motion.div>
+            )}
+
+            {step === "loading" ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : step === "phone" ? (
+              <div className="flex flex-col gap-4">
+                <input
+                  type="tel"
+                  placeholder="351XXXXXXXXX"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full rounded-xl border border-border/70 bg-card/80 px-4 py-3 text-center text-lg tracking-widest backdrop-blur-md placeholder:text-muted-foreground/50 focus:border-primary/70 focus:outline-none"
+                  autoFocus
+                />
+                <motion.button
+                  type="button"
+                  onClick={handleRequestCode}
+                  className="rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                  whileTap={{ scale: 0.97 }}
+                >
+                  Enviar código por WhatsApp
+                </motion.button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={4}
+                  placeholder="0000"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  className="w-full rounded-xl border border-border/70 bg-card/80 px-4 py-3 text-center text-2xl font-bold tracking-[0.5em] backdrop-blur-md placeholder:text-muted-foreground/50 focus:border-primary/70 focus:outline-none"
+                  autoFocus
+                />
+                <motion.button
+                  type="button"
+                  onClick={handleValidateCode}
+                  disabled={code.length < 4}
+                  className="rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                  whileTap={{ scale: 0.97 }}
+                >
+                  Verificar
+                </motion.button>
+                <button
+                  type="button"
+                  onClick={() => { setStep("phone"); setCode(""); setError(""); }}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Usar outro número
+                </button>
+              </div>
+            )}
+          </>
         )}
       </motion.div>
     </div>
