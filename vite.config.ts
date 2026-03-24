@@ -20,9 +20,9 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg}"]
       },
       manifest: {
-        name: "Agente",
-        short_name: "Agente",
-         description: "Deep Space Personal Finance Dashboard PWA",
+        name: "Vectra Finance",
+        short_name: "Vectra",
+        description: "Vectra Finance - Dashboard financeiro pessoal",
         start_url: "/",
         scope: "/",
         display: "standalone",
