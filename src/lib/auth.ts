@@ -87,6 +87,16 @@ async function generateSupabaseSession(whatsapp: string): Promise<void> {
 
 /** Restore session on app startup if stored tokens exist */
 export async function restoreSession(): Promise<boolean> {
+  // First try the cached/stored session
   const { data } = await supabase.auth.getSession();
-  return !!data.session;
+  if (data.session) return true;
+
+  // Try explicit refresh in case the access token expired but refresh token is valid
+  const { data: refreshData, error } = await supabase.auth.refreshSession();
+  if (!error && refreshData.session) return true;
+
+  // No valid session — clear stale login so user is forced to re-authenticate
+  window.localStorage.removeItem(STORAGE_KEY);
+  window.localStorage.removeItem("app_user_id");
+  return false;
 }

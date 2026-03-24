@@ -247,18 +247,29 @@ const Index = () => {
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
   useEffect(() => {
-    try {
-      const stored = getStoredCliente();
-      if (stored) {
-        setSelectedUser(stored);
-        // Try to restore Supabase Auth session
-        restoreSession().catch(() => {});
+    let cancelled = false;
+    (async () => {
+      try {
+        const stored = getStoredCliente();
+        if (stored) {
+          // Try to restore Supabase Auth session
+          const hasSession = await restoreSession();
+          if (!cancelled) {
+            if (hasSession) {
+              setSelectedUser(stored);
+            } else {
+              // Session expired — force re-login (will show install screen too)
+              setSelectedUser(null);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to restore session", error);
+      } finally {
+        if (!cancelled) setBootstrappedUser(true);
       }
-    } catch (error) {
-      console.error("Failed to read stored user from localStorage", error);
-    } finally {
-      setBootstrappedUser(true);
-    }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   const handleLogin = (cliente: Cliente) => {
